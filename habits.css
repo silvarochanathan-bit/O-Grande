@@ -24,9 +24,8 @@
    1. LAYOUT PRINCIPAL & NAVEGAÇÃO
    ========================================= */
 
-/* O Container da Seção (Controla a visibilidade da aba) */
 #section-habits {
-    display: none; /* Oculto por padrão para permitir navegação */
+    display: none;
     flex-direction: column;
     height: 100%;
     width: 100%;
@@ -35,7 +34,6 @@
     background-color: var(--habit-bg-main);
 }
 
-/* Apenas visível quando ativo */
 #section-habits.active {
     display: flex;
     animation: fadeInSection 0.3s ease-out;
@@ -47,17 +45,16 @@
     flex-grow: 1;
     overflow: hidden;
     position: relative;
-    padding-bottom: 80px; /* Espaço para scroll final */
+    padding-bottom: 80px; 
 }
 
-/* Animação de entrada da seção */
 @keyframes fadeInSection {
     from { opacity: 0; transform: translateY(5px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
 /* =========================================
-   2. BARRA DE FILTROS (HOJE, SEMANA...)
+   2. BARRA DE FILTROS
    ========================================= */
 
 .filter-bar {
@@ -70,9 +67,8 @@
     border-bottom: 1px solid var(--habit-border);
     overflow-x: auto;
     white-space: nowrap;
-    scrollbar-width: none; /* Firefox */
+    scrollbar-width: none;
 }
-
 .filter-bar::-webkit-scrollbar { display: none; }
 
 .filter-btn {
@@ -103,7 +99,7 @@
 }
 
 /* =========================================
-   3. ABAS DE GRUPOS (CATEGORIAS)
+   3. ABAS DE GRUPOS
    ========================================= */
 
 .habit-tabs-nav {
@@ -134,7 +130,6 @@
     white-space: nowrap;
 }
 
-/* Indicador de Aba Ativa (Linha inferior) */
 .habit-tab-btn::after {
     content: '';
     position: absolute;
@@ -149,11 +144,9 @@
 }
 
 .habit-tab-btn:hover { color: var(--habit-text-main); }
-
 .habit-tab-btn.active { color: var(--habit-accent); }
 .habit-tab-btn.active::after { transform: scaleX(1); }
 
-/* Badge com contagem de hábitos */
 .tab-badge {
     background-color: rgba(255, 255, 255, 0.1);
     color: var(--habit-text-sub);
@@ -181,7 +174,7 @@
 }
 
 /* =========================================
-   4. CONTEÚDO DOS HÁBITOS (SCROLL)
+   4. CONTEÚDO DOS HÁBITOS
    ========================================= */
 
 .habit-contents-wrapper {
@@ -207,7 +200,6 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Cabeçalho de Opções da Aba */
 .tab-options-header {
     display: flex;
     justify-content: flex-end;
@@ -230,7 +222,6 @@
     color: #fff;
 }
 
-/* Separador Stand By / Oportunidade */
 .stand-by-separator {
     margin-top: 30px;
     margin-bottom: 15px;
@@ -281,7 +272,6 @@
     z-index: 1;
 }
 
-/* Estado: Completado */
 .habit-card.completed {
     opacity: 0.6;
     border-color: var(--habit-success);
@@ -289,22 +279,14 @@
     filter: grayscale(0.1);
 }
 
-.habit-card.completed:hover {
-    opacity: 0.9;
-    filter: grayscale(0);
-}
+.habit-card.completed:hover { opacity: 0.9; filter: grayscale(0); }
 
-/* Estado: Infinito */
-.habit-card.infinite {
-    border-left: 4px solid #00bcd4;
-}
-
+.habit-card.infinite { border-left: 4px solid #00bcd4; }
 .habit-card.infinite.active-today {
     background: linear-gradient(90deg, rgba(0, 188, 212, 0.05) 0%, transparent 100%);
     box-shadow: inset 0 0 20px rgba(0, 188, 212, 0.05);
 }
 
-/* Detalhes do Hábito */
 .habit-main-info {
     display: flex;
     align-items: flex-start;
@@ -359,7 +341,6 @@
    6. AÇÕES & BOTÕES
    ========================================= */
 
-/* Checkbox Simples */
 .habit-check-btn {
     width: 28px;
     height: 28px;
@@ -388,7 +369,6 @@
     transform: scale(1.1);
 }
 
-/* Widget Contador */
 .counter-widget {
     display: flex;
     align-items: center;
@@ -397,7 +377,6 @@
     padding: 3px;
     border: 1px solid var(--habit-border);
 }
-
 .counter-widget.infinite { border-color: rgba(0, 188, 212, 0.3); }
 
 .counter-btn {
@@ -430,7 +409,6 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* Botão de Oportunidade */
 .btn-opportunity {
     font-size: 0.75rem;
     background: rgba(33, 150, 243, 0.1);
@@ -449,7 +427,6 @@
     box-shadow: 0 0 10px rgba(33, 150, 243, 0.3);
 }
 
-/* Controles de Edição */
 .habit-controls {
     display: flex;
     gap: 4px;
@@ -457,7 +434,6 @@
     transition: opacity 0.2s;
     margin-left: 10px;
 }
-
 .habit-card:hover .habit-controls { opacity: 1; }
 
 .icon-btn {
@@ -475,7 +451,7 @@
 .icon-btn.delete:hover { color: var(--habit-danger); background: rgba(255, 23, 68, 0.1); }
 
 /* =========================================
-   7. CONTROLES DE TEMPO & CRONÔMETRO
+   7. CONTROLES DE TEMPO (CARD)
    ========================================= */
 
 .habit-time-controls {
@@ -519,7 +495,6 @@
 }
 
 .btn-time-action:hover { opacity: 1; transform: scale(1.1); }
-
 .btn-time-action.running {
     opacity: 1;
     color: var(--habit-warning);
@@ -527,63 +502,91 @@
 }
 
 /* =========================================
-   8. WIDGET FLUTUANTE (CRONÔMETRO)
+   8. WIDGET CRONÔMETRO (TOTEM VERTICAL)
    ========================================= */
 
 .stopwatch-widget {
     position: fixed;
-    bottom: 25px;
-    right: 25px;
+    /* Alinhado na esquerda, abaixo da navegação, no espaço vazio */
+    left: 10px;
+    bottom: 80px; /* Acima do botão Home */
+    
+    /* Forma de Totem Vertical */
+    width: 85px; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+
     background-color: #1a1a1a;
     border: 1px solid var(--habit-accent);
-    border-left: 4px solid var(--habit-accent);
+    border-top: 3px solid var(--habit-accent); /* Destaque no topo */
     border-radius: 8px;
-    padding: 16px;
-    min-width: 240px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    padding: 10px 5px;
+    
+    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
     z-index: 2000;
     animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     backdrop-filter: blur(10px);
 }
 
+/* Esconde se não estiver na aba de Produtividade (Segurança CSS) */
+body:not([data-current-app="productivity"]) .stopwatch-widget {
+    display: none !important;
+}
+
 .stopwatch-header {
+    width: 100%;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.75rem;
+    justify-content: center;
+    font-size: 0.6rem;
     color: var(--habit-text-sub);
-    margin-bottom: 8px;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0;
+}
+
+/* Oculta nome do hábito no modo totem para economizar espaço, 
+   ou mostra apenas ícone se preferir. Aqui deixo pequeno. */
+.stopwatch-header span:last-child {
+    display: none; /* Esconde nome do hábito no totem */
 }
 
 .stopwatch-display {
     font-family: 'Courier New', monospace;
-    font-size: 2.4rem;
+    font-size: 0.95rem; /* Fonte pequena para caber na largura */
     font-weight: 700;
     color: #fff;
     text-align: center;
-    margin: 12px 0;
-    letter-spacing: -1px;
-    text-shadow: 0 0 15px rgba(124, 77, 255, 0.4);
+    margin: 0;
+    letter-spacing: -0.5px;
+    background: rgba(0,0,0,0.3);
+    padding: 4px;
+    border-radius: 4px;
+    width: 100%;
 }
 
 .stopwatch-controls {
     display: flex;
-    gap: 8px;
-    margin-top: 10px;
+    flex-direction: column; /* Botões empilhados */
+    width: 100%;
+    gap: 5px;
 }
 
 .sw-btn {
-    flex: 1;
+    width: 100%;
     border: none;
-    padding: 8px 0;
+    padding: 6px 0;
     border-radius: 4px;
     font-weight: 700;
     cursor: pointer;
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     text-transform: uppercase;
     transition: transform 0.1s, background 0.2s;
+    text-align: center;
 }
 
 .sw-btn:active { transform: scale(0.96); }
@@ -599,10 +602,9 @@
 }
 
 /* =========================================
-   9. TRACKS VISUAIS (CONDUTA, FOCO, ETC)
+   9. TRACKS VISUAIS
    ========================================= */
 
-/* 9.1 Conduta (3 Blocos) */
 .habit-conduct-track {
     display: flex;
     gap: 8px;
@@ -639,7 +641,6 @@
     color: #000;
 }
 
-/* 9.2 Abstinência & Foco (Pílulas) */
 .habit-abstinence-track {
     display: flex;
     gap: 6px;
@@ -740,7 +741,6 @@
    11. MODAIS E FORMULÁRIOS
    ========================================= */
 
-/* Fix para Modal Scroll */
 #modal-habit-edit .modal-content, .sys-modal-content {
     max-height: 90vh;
     display: flex;
@@ -753,7 +753,6 @@
     flex: 1;
 }
 
-/* Seletor de Dias (Bolinhas) */
 .days-selector {
     display: flex;
     flex-wrap: wrap;
@@ -785,7 +784,6 @@
 
 .days-selector input { display: none; }
 
-/* Seletor de Importância */
 .importance-selector {
     display: flex;
     gap: 10px;
@@ -816,7 +814,6 @@
 
 .importance-selector input { display: none; }
 
-/* Cards de Configuração (Toggle + Conteúdo) */
 .emotional-factor-wrapper,
 .cognitive-fatigue-wrapper,
 .conduct-wrapper,
@@ -851,7 +848,6 @@
     accent-color: var(--habit-accent);
 }
 
-/* Slider Emocional */
 .emotional-slider-container {
     display: flex;
     align-items: center;
@@ -862,10 +858,7 @@
     transition: opacity 0.2s;
 }
 
-.emotional-slider-container.active {
-    opacity: 1;
-    pointer-events: auto;
-}
+.emotional-slider-container.active { opacity: 1; pointer-events: auto; }
 
 .emotional-value-display {
     background: rgba(0,0,0,0.4);
@@ -876,7 +869,6 @@
     color: var(--habit-accent);
 }
 
-/* Início/Fim Índices */
 .start-end-indices {
     display: flex;
     flex-wrap: wrap;
@@ -912,7 +904,6 @@
 
 .index-checkbox-label input { display: none; }
 
-/* Abstinência & Foco Inputs */
 .abstinence-header {
     display: flex;
     justify-content: space-between;
@@ -966,7 +957,6 @@
     border-radius: 4px;
 }
 
-/* Modal Ajuste Manual de Tempo */
 .manual-time-inputs {
     display: flex;
     justify-content: center;
@@ -999,7 +989,7 @@
 }
 
 /* =========================================
-   12. ANIMAÇÕES GERAIS
+   12. ANIMAÇÕES
    ========================================= */
 
 @keyframes pulse {

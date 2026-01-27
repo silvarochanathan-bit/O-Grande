@@ -485,10 +485,39 @@ window.ChestManager = {
     },
 
     deleteReward: function(index) {
-        if (confirm("Remover do histórico?")) {
-            window.GlobalApp.data.rewards.splice(index, 1);
+        if (confirm("Remover do histórico? (Se for um ganho, o valor será estornado da carteira)")) {
+            const list = window.GlobalApp.data.rewards;
+            const item = list[index];
+
+            // LÓGICA DE ESTORNO (ROLLBACK)
+            if (item && item.type === 'gain') {
+                const w = window.GlobalApp.data.wallet;
+                const txt = item.path || '';
+
+                // 1. Cristais
+                if (txt.includes('CRISTAL')) {
+                    // Tenta achar o número, senão assume 1
+                    const match = txt.match(/\+(\d+)/);
+                    const qty = match ? parseInt(match[1]) : 1;
+                    if (w.crystals.current >= qty) w.crystals.current -= qty;
+                }
+                // 2. Diário
+                else if (txt.includes('Diário')) {
+                    if (w.daily.current > 0) w.daily.current--;
+                    if (w.daily.gainedToday > 0) w.daily.gainedToday--;
+                }
+                // 3. Fim de Semana (Qualquer menção a FDS)
+                else if (txt.includes('FDS')) {
+                    if (w.weekend.current > 0) w.weekend.current--;
+                }
+            }
+
+            // Remove do array
+            list.splice(index, 1);
+            
             window.GlobalApp.saveData();
             this.renderRewardsHistory();
+            this.renderWalletDashboard(); // Atualiza visual da carteira
         }
     },
 
