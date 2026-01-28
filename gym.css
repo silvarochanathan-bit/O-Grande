@@ -1,447 +1,599 @@
 /* ==========================================================================
-   GYM.CSS (V40 - RESPONSIVE MOBILE-FIRST)
-   Estilos para o Módulo Iron Forge (Academia).
-   Foco: Inputs grandes para toque e layout vertical no mobile.
+   GYM.CSS (V5.8 - STACKING FIX)
+   Estilo completo do módulo Iron Forge.
+   Alterações: Correção de z-index e sticky-top para evitar conflitos com o Header Global.
    ========================================================================== */
 
 :root {
-    --gym-bg: #121212;
-    --gym-card-bg: #1e1e1e;
-    --gym-input-bg: #2c2c2c;
-    --gym-border: #333;
+    --gym-bg: #000000;         /* Fundo Absoluto */
+    --gym-card-bg: #1c1c1e;    /* Cinza Apple Dark */
+    --gym-input-bg: #2c2c2e;   /* Cinza Input */
+    --gym-border: #2c2c2e;     /* Bordas sutis */
     
-    /* Cores de Fase */
-    --phase-cutting: #ff5252;
-    --phase-maintenance: #448aff;
-    --phase-bulking: #69f0ae;
+    --gym-accent: #0a84ff;     /* Azul iOS/Hevy */
+    --gym-accent-dim: rgba(10, 132, 255, 0.15);
     
-    /* Cores de Feedback */
-    --gym-gold: #ffd700;
-    --gym-success: #00e676;
-    --gym-danger: #f44336;
-    --gym-text: #e0e0e0;
-    --gym-text-muted: #888;
+    --gym-text-main: #ffffff;
+    --gym-text-sub: #a0a0a0;
+    
+    --gym-success: #30d158;    /* Verde Vibrante */
+    --gym-danger: #ff453a;     /* Vermelho Erro */
+    --gym-gold: #ffd60a;       /* PR/Recordes */
+    --gym-warmup: #ff9500;     /* Laranja Neon (Aquecimento) */
 }
 
 #gym-container {
     padding: 10px;
     width: 100%;
-    max-width: 800px; /* Limite para não esticar demais no PC */
+    max-width: 600px; /* Otimizado para Mobile */
     margin: 0 auto;
-    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    padding-bottom: 100px; /* Espaço para scroll no mobile */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding-bottom: 120px; /* Espaço para footer/FAB */
+    color: var(--gym-text-main);
 }
 
 /* =========================================
-   1. HEADER DE CONTEXTO (FASE & STREAK)
+   0. CORREÇÃO CRÍTICA: AUDITOR (GLOBAL)
    ========================================= */
 
-.gym-header {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    overflow-x: auto;
-    padding-bottom: 5px;
-    /* Mobile: Scroll horizontal se necessário */
-    white-space: nowrap; 
-    -webkit-overflow-scrolling: touch;
-}
-.gym-header::-webkit-scrollbar { display: none; }
-
-.gym-stat-box {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid var(--gym-border);
-    border-left: 4px solid transparent; 
+#xp-audit-widget {
+    position: fixed;
+    top: 70px; 
+    right: 10px;
+    background: rgba(0, 0, 0, 0.95);
+    border: 1px solid var(--gym-accent);
     border-radius: 8px;
-    padding: 10px 15px;
-    flex: 1;
-    min-width: 130px; /* Garante tamanho mínimo no mobile */
-    display: flex;
+    padding: 10px;
+    min-width: 200px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+    backdrop-filter: blur(5px);
+    z-index: 99999; /* ACIMA DE TUDO */
+    display: none; 
     flex-direction: column;
+    gap: 5px;
+    pointer-events: none; /* Permite clique através dele */
+    animation: fadeIn 0.2s ease-out;
 }
 
-.gym-stat-box.streak { border-left-color: var(--gym-gold); }
-
-.gym-label {
-    font-size: 0.7rem;
-    color: var(--gym-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 5px;
+#xp-audit-widget:not(.hidden) {
+    display: flex;
 }
 
-.gym-value {
-    font-size: 1rem;
+.audit-row {
+    font-size: 0.85rem;
+    display: flex;
+    justify-content: space-between;
+    color: #fff;
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.audit-row span:last-child {
     font-weight: 700;
-    color: var(--gym-text);
+    color: var(--gym-success);
 }
 
-.gym-actions {
+/* =========================================
+   1. NAVEGAÇÃO E ABAS
+   ========================================= */
+
+.gym-internal-nav {
+    display: flex;
+    gap: 5px;
+    padding: 10px;
+    background: #111;
+    border-bottom: 1px solid var(--gym-border);
+    position: sticky;
+    /* Ajuste V5.8: Fica abaixo do header global (70px) */
+    top: 70px; 
+    /* Ajuste V5.8: Abaixo do Header Global (100) mas acima do conteúdo */
+    z-index: 90;
+}
+
+.gym-nav-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--gym-text-sub);
+    padding: 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.gym-nav-btn.active {
+    color: var(--gym-accent);
+    border-bottom-color: var(--gym-accent);
+}
+
+.gym-tab-content {
+    display: none;
+    padding: 15px 10px;
+}
+
+.gym-tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+/* =========================================
+   2. HOME & ROTINAS
+   ========================================= */
+
+.gym-screen-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 0 5px;
+}
+
+.gym-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--gym-text-main);
+    letter-spacing: -0.5px;
+}
+
+.btn-new-routine {
+    background: transparent;
+    color: var(--gym-accent);
+    border: 1px solid var(--gym-accent);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
     display: flex;
     align-items: center;
+    gap: 5px;
+}
+.btn-new-routine:hover { background: var(--gym-accent-dim); }
+
+.routines-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
 
-.gym-rest-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--gym-border);
-    color: var(--gym-text-muted);
-    padding: 10px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.8rem;
-    transition: all 0.2s;
-    height: 100%; /* Ocupa altura do header */
-}
-.gym-rest-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
-
-/* =========================================
-   2. CARD DE EXERCÍCIO (CORE)
-   ========================================= */
-
-.gym-card {
-    background: var(--gym-card-bg);
-    border: 1px solid var(--gym-border);
+.routine-card {
+    background-color: var(--gym-card-bg);
     border-radius: 12px;
-    padding: 15px;
-    margin-bottom: 20px;
+    padding: 16px;
+    border: 1px solid var(--gym-border);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     position: relative;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    transition: border-color 0.3s;
+    transition: transform 0.1s;
 }
+.routine-card:active { transform: scale(0.98); }
 
-.gym-card:hover { border-color: #555; }
-
-/* 2.1 Cabeçalho do Card (Nome + Timer) */
-.gym-card-header {
+.routine-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 15px;
-    gap: 10px;
 }
 
-.gym-ex-info {
-    flex-grow: 1;
-    min-width: 0; /* Permite quebra de texto */
-}
-
-.gym-ex-info h4 {
-    margin: 0;
-    color: var(--gym-text);
+.routine-info h3 {
+    margin: 0 0 5px 0;
     font-size: 1.1rem;
-    line-height: 1.3;
-    word-break: break-word;
+    font-weight: 700;
+    color: var(--gym-text-main);
 }
 
-.gym-pr-badge {
-    font-size: 0.75rem;
-    color: var(--gym-gold);
-    background: rgba(255, 215, 0, 0.1);
-    padding: 2px 6px;
+.routine-exercises-preview {
+    font-size: 0.85rem;
+    color: var(--gym-text-sub);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Botões de Ação na Rotina */
+.routine-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.routine-menu-btn {
+    background: transparent;
+    border: none;
+    color: var(--gym-text-sub);
+    font-size: 1.1rem;
+    padding: 5px;
+    cursor: pointer;
     border-radius: 4px;
-    margin-top: 5px;
-    display: inline-block;
-    border: 1px solid rgba(255, 215, 0, 0.2);
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+.routine-menu-btn:hover { opacity: 1; background: rgba(255,255,255,0.05); }
+
+.routine-config-btn { color: var(--gym-accent); }
+.routine-delete-btn { color: var(--gym-danger); }
+
+.btn-start-routine {
+    background-color: var(--gym-accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-align: center;
+    width: 100%;
+    box-shadow: 0 2px 10px rgba(10, 132, 255, 0.3);
 }
 
-/* Timer */
-.gym-timer-display {
+/* =========================================
+   3. SESSÃO ATIVA (LAYOUT V5.8 FIX)
+   ========================================= */
+
+.workout-sticky-header {
+    position: sticky;
+    /* Ajuste V5.8: 70px (Global) + ~55px (Nav Interna) = 125px */
+    top: 125px;
+    background: rgba(0,0,0,0.95);
+    backdrop-filter: blur(10px);
+    /* Ajuste V5.8: Abaixo da Nav Interna (90) */
+    z-index: 80;
+    padding: 10px 15px;
+    border-bottom: 1px solid var(--gym-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0 -10px 20px -10px;
+}
+
+.session-timer {
     font-family: 'Courier New', monospace;
     font-size: 1.1rem;
     font-weight: 700;
-    color: var(--gym-text);
-    background: #000;
-    padding: 6px 10px;
-    border-radius: 6px;
-    min-width: 70px;
-    text-align: center;
-    border: 1px solid var(--gym-border);
-    flex-shrink: 0;
-}
-
-.gym-timer-display.ready {
-    background: var(--gym-success);
-    color: #000;
-    animation: pulse 1s infinite;
-}
-
-/* 2.2 Inputs e Ação (A MÁGICA MOBILE) */
-.gym-inputs-row {
-    display: flex;
-    flex-wrap: wrap; /* Permite quebrar linha no mobile */
-    gap: 10px;
-    align-items: flex-end;
-    margin-bottom: 15px;
-}
-
-.gym-input-group {
-    flex: 1; /* Cresce igualmente */
-    min-width: 80px; /* Tamanho mínimo */
-    display: flex;
-    flex-direction: column;
-}
-
-.gym-input-group label {
-    font-size: 0.75rem;
-    color: var(--gym-text-muted);
-    margin-bottom: 6px;
-    font-weight: 600;
-}
-
-.gym-input-group input {
+    color: var(--gym-text-main);
     background: var(--gym-input-bg);
+    padding: 4px 10px;
+    border-radius: 6px;
     border: 1px solid var(--gym-border);
-    color: #fff;
-    padding: 0 10px;
-    height: 45px; /* Altura boa para toque */
-    border-radius: 8px;
-    font-size: 1.1rem;
-    text-align: center;
-    width: 100%;
-    /* Remove setas do input number */
-    -moz-appearance: textfield;
-}
-.gym-input-group input::-webkit-outer-spin-button,
-.gym-input-group input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
 }
 
-.gym-check-btn {
-    width: 100%; /* No mobile, ocupa linha inteira */
-    flex-basis: 100%; /* Força quebra de linha */
-    
-    background: var(--gym-success);
+.btn-finish-workout {
+    background-color: var(--gym-success); 
     color: #000;
     border: none;
-    border-radius: 8px;
-    height: 50px; /* Botão grande e fácil de clicar */
-    font-weight: 800;
-    cursor: pointer;
-    text-transform: uppercase;
-    font-size: 1rem;
-    letter-spacing: 1px;
-    margin-top: 5px;
-    box-shadow: 0 4px 0 rgba(0, 200, 100, 1); /* Efeito 3D */
-    transition: all 0.1s;
-}
-.gym-check-btn:active {
-    transform: translateY(4px);
-    box-shadow: 0 0 0 rgba(0, 200, 100, 1);
-}
-
-/* PC: Ajuste para Inputs e Botão na mesma linha */
-@media (min-width: 768px) {
-    .gym-check-btn {
-        width: auto;
-        flex-basis: auto;
-        flex: 1.5; /* Botão um pouco maior que inputs */
-        margin-top: 0;
-        height: 45px; /* Alinha com inputs */
-    }
-}
-
-/* 2.3 Track de Séries (Bolinhas) */
-.gym-sets-track {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 15px;
-    padding: 12px;
-    background: rgba(0,0,0,0.2);
-    border-radius: 12px;
-    justify-content: center;
-    flex-wrap: wrap;
-}
-
-.set-bubble {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    border: 2px solid var(--gym-text-muted);
-    background: transparent;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.set-bubble.done {
-    background: var(--gym-success);
-    border-color: var(--gym-success);
-    transform: scale(1.3);
-    box-shadow: 0 0 10px rgba(0, 230, 118, 0.4);
-}
-
-/* 2.4 Footer do Card (Opções) */
-.gym-card-footer {
-    display: flex;
-    justify-content: space-between;
-    border-top: 1px solid rgba(255,255,255,0.05);
-    padding-top: 12px;
-}
-
-.gym-opt-btn {
-    background: transparent;
-    border: 1px solid rgba(255,255,255,0.1);
     border-radius: 6px;
-    padding: 6px 12px;
-    color: var(--gym-text-muted);
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.gym-opt-btn:hover { 
-    background: rgba(255,255,255,0.05);
-    color: #fff;
-    border-color: rgba(255,255,255,0.3);
+    padding: 6px 16px;
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: 0.85rem;
 }
 
-.gym-opt-btn.finish { color: var(--gym-gold); border-color: rgba(255, 215, 0, 0.2); }
-.gym-opt-btn.finish:hover { background: rgba(255, 215, 0, 0.1); }
-
-/* =========================================
-   3. CARDIO EXPONENCIAL
-   ========================================= */
-
-.gym-cardio-section {
-    background: linear-gradient(135deg, #1e1e1e 0%, #252525 100%);
-    border: 1px solid var(--gym-border);
-    border-radius: 12px;
-    padding: 15px;
+.session-exercise-card {
+    background: transparent;
     margin-bottom: 30px;
 }
 
-.gym-cardio-section h4 {
-    margin: 0 0 15px 0;
-    color: #90caf9;
+.session-exercise-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--gym-border);
+}
+
+.session-exercise-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--gym-accent); 
+}
+
+/* GRID V57 - 6 COLUNAS */
+.sets-grid {
+    display: grid;
+    /* Colunas: TYPE | PREV | KG | REPS | REST | CHECK */
+    grid-template-columns: 45px 1fr 75px 75px 65px 40px;
+    gap: 6px;
+    align-items: center;
+}
+
+.sets-header {
+    font-size: 0.65rem;
+    color: var(--gym-text-sub);
+    text-transform: uppercase;
     text-align: center;
+    font-weight: 700;
+    margin-bottom: 5px;
 }
+.sets-header.align-left { text-align: left; padding-left: 5px; }
 
-.cardio-progress-bar {
-    height: 24px;
-    background: #000;
-    border-radius: 12px;
+.set-row { display: contents; }
+
+.set-prev {
+    color: var(--gym-text-sub);
+    font-size: 0.8rem;
+    padding-left: 5px;
+    white-space: nowrap;
     overflow: hidden;
-    position: relative;
-    margin-bottom: 20px;
-    border: 1px solid #333;
+    text-overflow: ellipsis;
 }
 
-.cardio-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #2196f3, #90caf9);
-    transition: width 0.5s ease;
-}
-
-.cardio-text {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
+/* BOTÃO DE TIPO DE SÉRIE */
+.btn-set-type {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--gym-text-sub);
+    font-size: 1.1rem; 
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.8rem;
-    font-weight: 800;
-    color: #fff;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-    z-index: 2;
+    transition: all 0.2s;
+}
+.btn-set-type:hover { background: rgba(255,255,255,0.1); }
+
+.btn-set-type.is-warmup { 
+    color: var(--gym-warmup); 
+    font-size: 1.4rem; 
+    text-shadow: 0 0 5px rgba(255, 149, 0, 0.4);
+}
+.btn-set-type.is-valid { 
+    color: var(--gym-accent); 
+    font-size: 1.4rem; 
 }
 
-.cardio-controls {
+/* INPUTS LARGOS */
+.gym-input {
+    background: var(--gym-input-bg);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: #fff;
+    height: 36px;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 600;
+    width: 100%;
+    padding: 0;
+}
+.gym-input:focus {
+    border-color: var(--gym-accent);
+    background: #000;
+    outline: none;
+}
+
+.btn-check-set {
+    height: 36px;
+    width: 100%;
+    border-radius: 6px;
+    border: none;
+    background: var(--gym-input-bg);
+    cursor: pointer;
+    transition: all 0.2s;
     display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
+    align-items: center;
     justify-content: center;
 }
-
-.bait-btn {
-    border: none;
-    border-radius: 8px;
+.btn-check-set.checked {
+    background: var(--gym-success);
+    color: #000;
     font-weight: bold;
+}
+.btn-check-set.checked::after { content: '✓'; font-size: 1.1rem; }
+
+.btn-add-set {
+    grid-column: 1 / -1; 
+    background: rgba(255,255,255,0.03);
+    border: 1px dashed var(--gym-border);
+    color: var(--gym-accent);
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: 600;
+    margin-top: 10px;
     cursor: pointer;
-    transition: transform 0.1s;
-    color: #fff;
-    box-shadow: 0 4px 0 rgba(0,0,0,0.3);
+    text-transform: uppercase;
+    font-size: 0.8rem;
 }
-.bait-btn:active { 
-    transform: translateY(4px); 
-    box-shadow: none;
+.btn-add-set:hover { background: rgba(255,255,255,0.08); }
+
+/* =========================================
+   4. HISTÓRICO, ANALÍTICA E GRÁFICOS
+   ========================================= */
+
+#gym-log-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    color: var(--gym-text-main);
+}
+#gym-log-table th {
+    text-align: left;
+    padding: 12px 8px;
+    border-bottom: 1px solid var(--gym-border);
+    color: var(--gym-text-sub);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+}
+#gym-log-table td {
+    padding: 12px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.bait-btn.big {
-    background: #1565c0;
+.gym-log-xp { color: var(--gym-success); font-weight: 800; }
+
+.btn-undo-gym {
+    background: rgba(255, 69, 58, 0.1);
+    color: var(--gym-danger);
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    cursor: pointer;
+}
+
+.btn-ex-stats {
+    background: transparent;
+    border: 1px solid var(--gym-border);
+    color: var(--gym-text-sub);
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.btn-ex-stats:hover { color: var(--gym-gold); border-color: var(--gym-gold); }
+
+.gym-chart-box {
+    background: #000;
+    border: 1px solid var(--gym-border);
+    height: 180px;
+    margin: 20px 0;
+    border-radius: 8px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
     padding: 15px;
-    font-size: 1.1rem;
-    width: 100%; /* Botãozão no mobile */
+    gap: 5px;
 }
 
-.bait-btn.medium {
-    background: #0097a7;
-    padding: 12px 20px;
-    font-size: 0.9rem;
-    flex: 1; /* Divide espaço */
+.chart-bar {
+    background: var(--gym-accent);
+    width: 20px;
+    border-radius: 4px 4px 0 0;
+    position: relative;
+    transition: height 0.5s ease;
 }
-
-.bait-btn.small {
-    background: #ff9800;
-    padding: 10px 15px;
-    font-size: 0.8rem;
-    flex: 1;
-}
-
-.bait-btn.god-mode {
-    background: #f50057;
-    padding: 10px 15px;
-    font-size: 0.8rem;
-    flex: 1;
-    animation: shake 2s infinite;
-}
-
-.cardio-info {
-    text-align: center;
-    font-size: 0.75rem;
-    color: var(--gym-text-muted);
-    margin-top: 15px;
-    font-style: italic;
+.chart-bar::after {
+    content: attr(data-value);
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.6rem;
+    color: var(--gym-text-sub);
 }
 
 /* =========================================
-   4. BOTÃO FINALIZAR TREINO
+   5. TIMER DE DESCANSO E MODAIS (V57)
    ========================================= */
-.gym-finish-btn {
+
+.rest-timer-overlay {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--gym-accent);
+    color: #fff;
+    padding: 15px 30px;
+    border-radius: 40px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    z-index: 2000; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: slideUp 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+.rest-timer-display {
+    font-size: 1.5rem;
+    font-weight: 900;
+    font-family: 'Courier New', monospace;
+}
+
+/* HIERARQUIA DE Z-INDEX */
+#modal-gym-set-type { z-index: 1300; } 
+#modal-gym-chart { z-index: 1250; }
+#modal-gym-exercise-create { z-index: 1200; }
+#modal-gym-routine-edit { z-index: 1150; }
+#modal-gym-exercises { z-index: 1100; }
+#modal-gym-routine { z-index: 1100; }
+
+.gym-modal-title { color: var(--gym-text-main); margin-bottom: 20px; text-align: center; }
+
+.gym-form-group { margin-bottom: 15px; }
+.gym-form-group label { display: block; color: var(--gym-text-sub); margin-bottom: 5px; font-size: 0.9rem; }
+.gym-form-input {
     width: 100%;
-    padding: 20px;
-    background: rgba(0, 0, 0, 0.2);
-    border: 2px dashed var(--gym-border);
-    border-radius: 12px;
-    color: var(--gym-text-muted);
-    font-weight: bold;
+    padding: 14px;
+    background: var(--gym-input-bg);
+    border: 1px solid var(--gym-border);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 1rem;
+}
+
+.gym-selection-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 50vh;
+    overflow-y: auto;
+    margin: 15px 0;
+}
+.gym-select-item {
+    padding: 12px;
+    background: var(--gym-input-bg);
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     cursor: pointer;
-    text-transform: uppercase;
-    transition: all 0.2s;
-    margin-bottom: 50px;
+    border: 1px solid transparent;
+    transition: background 0.2s;
 }
-.gym-finish-btn:hover {
-    border-color: var(--gym-success);
-    color: var(--gym-success);
-    background: rgba(0, 230, 118, 0.05);
+.gym-select-item:hover { background: #3a3a3c; }
+.gym-select-item h4 { margin: 0; font-size: 1rem; color: #fff; }
+
+/* Lista de Reordenação */
+.edit-routine-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--gym-card-bg);
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--gym-border);
 }
+.edit-routine-name { font-weight: 600; color: #fff; font-size: 0.9rem; }
+.reorder-controls { display: flex; gap: 5px; }
+.btn-reorder, .btn-delete-item {
+    width: 28px; height: 28px; border: none; border-radius: 4px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+}
+.btn-reorder { background: rgba(255,255,255,0.1); color: var(--gym-text-sub); }
+.btn-reorder:hover { background: var(--gym-accent); color: #fff; }
+.btn-delete-item { background: rgba(255, 69, 58, 0.1); color: var(--gym-danger); }
+.btn-delete-item:hover { background: var(--gym-danger); color: #fff; }
+
+.btn-fab-add {
+    position: fixed; bottom: 90px; right: 20px; width: 56px; height: 56px;
+    border-radius: 50%; background: var(--gym-accent); color: #fff; border: none;
+    font-size: 1.8rem; box-shadow: 0 4px 15px rgba(0,0,0,0.5); display: flex;
+    align-items: center; justify-content: center; cursor: pointer; z-index: 100;
+}
+.btn-fab-add:active { transform: scale(0.9); }
 
 /* =========================================
    ANIMAÇÕES
    ========================================= */
-@keyframes pulse {
-    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.7); }
-    70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(0, 230, 118, 0); }
-    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 230, 118, 0); }
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes shake {
-    0% { transform: translate(1px, 1px) rotate(0deg); }
-    10% { transform: translate(-1px, -2px) rotate(-1deg); }
-    20% { transform: translate(-3px, 0px) rotate(1deg); }
-    30% { transform: translate(3px, 2px) rotate(0deg); }
-    40% { transform: translate(1px, -1px) rotate(1deg); }
-    50% { transform: translate(-1px, 2px) rotate(-1deg); }
-    60% { transform: translate(-3px, 1px) rotate(0deg); }
-    70% { transform: translate(3px, 1px) rotate(-1deg); }
-    80% { transform: translate(-1px, -1px) rotate(1deg); }
-    90% { transform: translate(1px, 2px) rotate(0deg); }
-    100% { transform: translate(1px, -2px) rotate(-1deg); }
+@keyframes slideUp {
+    from { transform: translate(-50%, 100%); opacity: 0; }
+    to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+@media (max-width: 480px) {
+    #gym-log-table th:nth-child(1), #gym-log-table td:nth-child(1) { display: none; } 
 }
