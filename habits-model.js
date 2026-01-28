@@ -1,7 +1,9 @@
 /**
  * HABITS-MODEL.JS
  * Lógica de Dados e Regras de Negócio para Hábitos.
- * VERSÃO: V23 - RESET DIÁRIO ROBUSTO
+ * VERSÃO: V5.9 - PASSIVE RESET MODEL
+ * Alterações: O reset diário agora é um método passivo chamado pelo GlobalApp.
+ * Removeu-se a verificação interna de data para evitar conflitos (Single Source of Truth).
  */
 
 window.HabitModel = {
@@ -34,117 +36,148 @@ window.HabitModel = {
     isHabitScheduledForToday: function(habit) {
         // 1. Hábitos Dependentes (só aparecem se marcados como oportunidade)
         if (habit.isDependent) {
-            return !!habit.opportunityToday; // Só exibe se a oportunidade surgiu
+            return !!habit.opportunityToday; // Só exibe se foi desbloqueado
         }
 
-        // 2. Frequência por Pattern (ex: "1101")
-        if (habit.frequencyType === 'pattern' && habit.pattern) {
-            // Pattern mostra sempre, mas UI indica descanso. 
-            // Para simplificar "Hoje", consideramos que faz parte do dia, 
-            // mesmo que seja descanso (para o usuário ver que tem descanso).
-            return true; 
+        const today = new Date();
+        const dayOfWeek = today.getDay(); // 0=Dom, 1=Seg...
+        
+        // 2. Frequência Semanal (Array de dias)
+        if (habit.frequencyType === 'weekly') {
+            // Se frequency for vazio e não for dependente, assume todos os dias (segurança)
+            if (!habit.frequency || habit.frequency.length === 0) return true;
+            // Verifica se o dia de hoje está no array de frequência (strings ou ints)
+            return habit.frequency.some(d => parseInt(d) === dayOfWeek);
         }
 
-        // 3. Frequência Semanal (0=Dom, 1=Seg...)
-        if (habit.frequency) {
-            const todayStr = new Date().getDay().toString();
-            return habit.frequency.includes(todayStr);
+        // 3. Padrão (X dias sim, Y dias não)
+        if (habit.frequencyType === 'pattern') {
+            const step = this.getPatternStep(habit);
+            // Se o caractere no passo atual for '1', é dia de fazer. Se '0', folga.
+            return habit.pattern && habit.pattern[step] === '1';
         }
 
-        // Fallback
-        return false; 
+        // Default (diário)
+        return true;
     },
 
-    // --- 2. RESET DIÁRIO (CORREÇÃO CRÍTICA) ---
-
-    dailyResetCheck: function() {
-        if (!window.GlobalApp || !window.GlobalApp.data) return false;
-
-        const today = window.GlobalApp.formatDate(new Date());
-        
-        // Garante que existe o objeto meta para controle
-        if (!window.GlobalApp.data.meta) window.GlobalApp.data.meta = {};
-        
-        const lastDate = window.GlobalApp.data.meta.lastActiveDate;
-
-        // SE A DATA MUDOU (ou é a primeira vez rodando)
-        if (lastDate !== today) {
-            console.log(`[HabitModel] 🌅 Novo dia detectado: ${today}. Executando Reset Diário...`);
-
-            if (window.GlobalApp.data.habits) {
-                window.GlobalApp.data.habits.forEach(h => {
-                    // RESETA TODOS OS ESTADOS DIÁRIOS
-                    h.completedToday = false;
-                    h.currentOfDay = 0;       // Zera contador
-                    h.dailySessionCount = 0;  // Zera sessões de fadiga
-                    h.accumulatedTime = 0;    // Zera cronômetro não salvo
-                    h.opportunityToday = false; // Zera oportunidade de dependentes
-                    
-                    // Zera Tracks Visuais
-                    h.focusCompleted = [];
-                    h.abstinenceCompleted = [];
-                    h.conductCompleted = [false, false, false];
-
-                    // OBS: Streak NÃO zera aqui. 
-                    // O Streak zera no Controller ao detectar que falhou ontem.
-                });
-            }
-
-            // Atualiza a data de controle e salva imediatamente
-            window.GlobalApp.data.meta.lastActiveDate = today;
-            window.GlobalApp.saveData();
-            return true; // Retorna true para avisar que houve reset
-        }
-        
-        return false; // Nada mudou
-    },
-
-    // --- 3. LÓGICA DE PADRÕES (PATTERN) ---
-
+    // Auxiliar para calcular em qual passo do padrão estamos
     getPatternStep: function(habit) {
+        if (!habit.createdAt) return 0;
         if (!habit.pattern) return 0;
+
+        const created = new Date(habit.createdAt);
+        created.setHours(0,0,0,0);
+        const today = new Date();
+        today.setHours(0,0,0,0);
         
-        // Calcula dias desde a criação (ou uma data base)
-        const created = new Date(habit.createdAt || new Date());
-        const now = new Date();
-        // Diferença em dias inteiros
-        const diffTime = Math.abs(now - created);
+        const diffTime = Math.abs(today - created);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
         
-        // Aplica offset
-        const totalIndex = diffDays + (habit.patternOffset || 0);
+        const offset = habit.patternOffset || 0;
+        const totalIndex = diffDays + offset;
         
-        // Modulo pelo tamanho do padrão
         return totalIndex % habit.pattern.length;
     },
 
-    // --- 4. UTILITÁRIOS ---
+    // --- 2. CÁLCULO DE XP (ESTIMATIVA VISUAL) ---
+    // Nota: O cálculo real final é feito no Controller (Master Formula), 
+    // mas este método é usado para mostrar a estimativa "+XX XP" no card.
 
-    formatSeconds: function(seconds) {
-        if (!seconds && seconds !== 0) return "00:00";
-        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-        const s = (seconds % 60).toString().padStart(2, '0');
-        const h = Math.floor(seconds / 3600);
+    calculateXP: function(habit) {
+        // Base baseada na importância
+        const baseValues = { 'low': 10, 'medium': 20, 'high': 35, 'critical': 50, 'development': 20 };
+        let xp = baseValues[habit.importance] || 15;
+
+        // Fator Emocional (Multiplicador 0.5x a 1.5x)
+        const emoMult = 0.5 + ((habit.emotionalValue || 0.5)); 
+        xp = xp * emoMult;
+
+        // Fadiga Cognitiva (Bônus para alta fadiga)
+        if (habit.cognitiveFatigue) xp = xp * 1.2;
+
+        // Bônus de Streak (Max +50%)
+        const streakBonus = Math.min(habit.streak || 0, 50) / 100;
+        xp = xp * (1 + streakBonus);
+
+        return Math.floor(xp);
+    },
+
+    // --- 3. RESET DIÁRIO (PASSIVO - V5.9) ---
+    // Chamado EXCLUSIVAMENTE pelo GlobalApp.processDailyRollover()
+    resetDailyState: function() {
+        console.log("[HabitModel] Executando reset passivo de estados...");
         
-        if (h > 0) {
-            const mRem = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-            return `${h}:${mRem}:${s}`;
-        }
-        return `${m}:${s}`;
+        const habits = window.GlobalApp.data.habits || [];
+        // A data de referência é "Ontem" (pois o reset roda na manhã seguinte)
+        // Precisamos saber se o hábito estava agendado para ontem para cobrar o streak.
+        
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = window.GlobalApp.formatDate(yesterday);
+
+        habits.forEach(h => {
+            // Salva estado de conclusão de ontem antes de limpar
+            const completedYesterday = h.completedToday;
+            
+            // Reseta contadores do dia (prepara para Hoje)
+            h.completedToday = false;
+            h.currentOfDay = 0;
+            h.accumulatedTime = 0;
+            h.opportunityToday = false; // Reseta flag de oportunidade (dependentes)
+            h.dailySessionCount = 0;    // Reseta sessões de foco
+            h.conductCompleted = [false, false, false];
+            h.abstinenceCompleted = []; 
+            if (h.abstinenceStages) {
+                h.abstinenceCompleted = new Array(h.abstinenceStages.length).fill(false);
+            }
+
+            // Lógica de Falha de Streak (Hard Reset)
+            // Se não completou ontem...
+            if (!completedYesterday) {
+                // ...e não é um hábito infinito (que não tem obrigação diária)...
+                if (h.type !== 'infinite') {
+                    // Verificação simplificada: Se lastDone não for ontem, quebra.
+                    // (Poderíamos verificar se era dia agendado, mas o GlobalApp já faz reset genérico.
+                    // A lógica fina de "era dia de fazer?" é complexa de rodar retroativamente sem histórico detalhado.
+                    // Assumimos: Se tem streak > 0 e não fez ontem, perdeu).
+                    
+                    const lastDoneDate = h.lastDone ? h.lastDone.split('T')[0] : null;
+                    
+                    // Se a última vez que fez não foi ontem (e nem hoje, claro), e tinha streak...
+                    if (lastDoneDate !== yesterdayStr && h.streak > 0) {
+                        // Verifica se ontem era dia de folga no padrão (Salvamento de Streak)
+                        // TODO: Implementar check retroativo de agendamento se necessário.
+                        // Por padrão, mantemos a rigidez: Não fez = Zero.
+                        console.log(`[HabitModel] Streak perdido para: ${h.name}`);
+                        h.streak = 0;
+                    }
+                }
+            }
+        });
+
+        window.GlobalApp.saveData();
+    },
+
+    // --- 4. MILESTONES (CONQUISTAS) ---
+    checkMilestones: function(habit) {
+        // Alias para compatibilidade com Controller
+        return this.checkAndGetMilestoneXP(habit);
     },
 
     checkAndGetMilestoneXP: function(habit) {
         if (!habit.milestoneType || habit.milestoneType === 'none') return null;
 
-        // Definição das Metas
-        const milestones = [7, 21, 30, 66, 90, 100, 365, 1000]; 
+        // Valores alvo para milestones
+        const targets = [1, 3, 7, 14, 21, 30, 60, 90, 180, 365, 1000];
         
         let currentVal = 0;
         if (habit.milestoneType === 'streak') currentVal = habit.streak;
-        if (habit.milestoneType === 'quantity') currentVal = habit.totalCount;
+        if (habit.milestoneType === 'total_reps') currentVal = habit.totalCount;
 
-        // Verifica se atingiu uma meta EXATA hoje e se ainda não reivindicou
-        if (milestones.includes(currentVal)) {
+        if (targets.includes(currentVal)) {
+            // Gera ID único para essa conquista: habitID_type_value
             const milestoneId = `${habit.id}_${habit.milestoneType}_${currentVal}`;
             
             if (!habit.milestonesClaimed) habit.milestonesClaimed = [];
@@ -152,7 +185,7 @@ window.HabitModel = {
             if (!habit.milestonesClaimed.includes(milestoneId)) {
                 habit.milestonesClaimed.push(milestoneId);
                 
-                // Cálculo de XP do Prêmio (Ex: 50 * raiz do valor)
+                // Cálculo de XP do Prêmio
                 const bonusXP = Math.floor(50 * Math.sqrt(currentVal));
                 
                 return {
@@ -165,23 +198,10 @@ window.HabitModel = {
         return null;
     },
 
-    // --- 5. SETUP VISUAL (OPTIONS) ---
-    // Funções auxiliares para mostrar/esconder campos no modal (usado pelo View se necessário)
-    toggleFreqOptions: function() {
-        const weekly = document.querySelector('input[name="freqType"][value="weekly"]');
-        const area = document.getElementById('pattern-input-area');
-        const days = document.querySelector('.days-selector');
-        
-        if (weekly && weekly.checked) {
-            if(days) days.classList.remove('hidden');
-            if(area) area.classList.add('hidden');
-        } else {
-            if(days) days.classList.add('hidden');
-            if(area) area.classList.remove('hidden');
-        }
-    },
-
-    toggleAdvancedOptions: function() {
-        // Lógica de toggle visual se necessário
+    // --- 5. UTILS ---
+    formatSeconds: function(seconds) {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m}:${s.toString().padStart(2, '0')}`;
     }
 };
