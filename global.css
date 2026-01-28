@@ -1,0 +1,493 @@
+:root {
+    /* Paleta de Cores - Tema Dark Gamificado */
+    --bg-main: #121212;
+    --bg-card: #1e1e1e;
+    --bg-nav: #252525;
+    
+    --text-primary: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    
+    --accent-color: #7c4dff; /* Roxo vibrante */
+    --accent-hover: #651fff;
+    
+    --success-color: #00e676; /* Verde neon para XP/Sucesso */
+    --danger-color: #ff5252;
+    --warning-color: #ffab00;
+    
+    --border-color: #333333;
+    
+    /* Espaçamentos e Medidas */
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --border-radius: 8px;
+    
+    /* Z-Index (Hierarquia Organizada) */
+    --z-background: 0;
+    --z-content: 10;
+    --z-header: 100;    /* Barra de XP Fixa */
+    --z-nav: 90;        /* Menu de abas (se fixo) */
+    --z-floating: 500;  /* Cronômetros flutuantes */
+    --z-overlay: 1000;  /* Overlays de feedback */
+    --z-modal: 2000;    /* Modais de edição */
+    --z-sys-modal: 3000; /* Alertas do sistema (Hard Reset etc) */
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    line-height: 1.6;
+    padding-top: 80px; /* Espaço para o header fixo */
+    min-height: 100vh;
+}
+
+/* ==========================================================================
+   VISIBILIDADE DOS MÓDULOS (SUPER APP)
+   ========================================================================== */
+
+/* Por padrão, esconde todos os containers de App */
+.app-module {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+/* Exibe apenas o módulo ativo baseado no atributo do body */
+body[data-current-app="hub"] #app-hub { display: flex; }
+body[data-current-app="productivity"] #app-productivity { display: block; }
+body[data-current-app="gym"] #app-gym { display: block; }
+body[data-current-app="diet"] #app-diet { display: block; }
+
+/* Esconde a navegação interna de abas quando está no HUB */
+body[data-current-app="hub"] #main-nav { display: none; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   TELA DE HUB (HOME)
+   ========================================================================== */
+
+#app-hub {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 100px);
+    padding: 20px;
+}
+
+.hub-title {
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    margin-bottom: 40px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.hub-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 30px;
+    width: 100%;
+    max-width: 1000px;
+}
+
+.hub-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.hub-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 5px;
+    background: var(--border-color);
+    transition: background 0.3s;
+}
+
+.hub-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+    background-color: #252525;
+}
+
+.hub-icon {
+    font-size: 4rem;
+    filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
+    transition: transform 0.3s;
+}
+
+.hub-card:hover .hub-icon {
+    transform: scale(1.1);
+}
+
+.hub-label {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--text-primary);
+}
+
+/* Cores específicas dos Apps no Hub */
+.hub-card[data-app="productivity"]:hover::before { background: var(--accent-color); }
+.hub-card[data-app="productivity"] .hub-icon { color: var(--accent-color); }
+
+.hub-card[data-app="gym"]:hover::before { background: #ff5252; }
+.hub-card[data-app="gym"] .hub-icon { color: #ff5252; }
+
+.hub-card[data-app="diet"]:hover::before { background: #00e676; }
+.hub-card[data-app="diet"] .hub-icon { color: #00e676; }
+
+/* ==========================================================================
+   CABEÇALHO FIXO (XP)
+   ========================================================================== */
+header#main-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 70px;
+    background-color: var(--bg-card);
+    border-bottom: 2px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 var(--spacing-md);
+    z-index: var(--z-header);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.level-container {
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: var(--accent-color);
+    margin-bottom: 4px;
+}
+
+/* ==========================================================================
+   NAVEGAÇÃO (PRODUTIVIDADE)
+   ========================================================================== */
+nav#main-nav {
+    display: flex;
+    background-color: var(--bg-nav);
+    padding: var(--spacing-sm);
+    gap: var(--spacing-sm);
+    overflow-x: auto; /* Scroll horizontal em mobile */
+    border-bottom: 1px solid var(--border-color);
+    /* Se você quiser fixar a nav abaixo do header em Produtividade, pode descomentar: */
+    /* position: sticky; top: 70px; z-index: var(--z-nav); */
+}
+
+.nav-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    padding: 10px 20px;
+    cursor: pointer;
+    font-weight: 600;
+    border-radius: var(--border-radius);
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.nav-btn:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.nav-btn.active {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+/* Botão de Voltar ao Hub (Flutuante ou Fixo) */
+.btn-back-hub {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: var(--bg-card);
+    border: 2px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: var(--z-floating);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    transition: all 0.2s;
+}
+
+.btn-back-hub:hover {
+    background-color: var(--text-primary);
+    color: var(--bg-main);
+    transform: scale(1.1);
+}
+
+/* ==========================================================================
+   CONTEÚDO PRINCIPAL
+   ========================================================================== */
+main#app-content {
+    /* Remove padding global pois o Hub centraliza sozinho */
+    /* O padding será aplicado internamente em cada app se necessário */
+}
+
+/* Container padrão para os módulos internos */
+.app-internal-container {
+    padding: var(--spacing-lg);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.tab-content {
+    display: none; /* Esconde todas as abas por padrão */
+    animation: fadeIn 0.3s ease;
+}
+
+.tab-content.active {
+    display: block; /* Mostra apenas a ativa */
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: var(--spacing-sm);
+}
+
+h2 {
+    color: var(--text-primary);
+    font-size: 1.5rem;
+}
+
+h3 {
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-sm);
+}
+
+/* ==========================================================================
+   ELEMENTOS DE UI GENÉRICOS
+   ========================================================================== */
+button {
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.action-btn {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: var(--border-radius);
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.action-btn:hover {
+    background-color: var(--accent-hover);
+}
+
+.secondary-btn {
+    background-color: transparent;
+    border: 1px solid var(--text-secondary);
+    color: var(--text-secondary);
+    padding: 8px 16px;
+    border-radius: var(--border-radius);
+}
+
+.secondary-btn:hover {
+    border-color: var(--text-primary);
+    color: var(--text-primary);
+}
+
+.claim-btn {
+    background-color: var(--success-color);
+    color: #000;
+    font-size: 1.2rem;
+    padding: 15px 40px;
+    border: none;
+    border-radius: 50px;
+    font-weight: 900;
+    margin-top: 20px;
+    box-shadow: 0 0 15px var(--success-color);
+    animation: pulseButton 1.5s infinite;
+}
+
+@keyframes pulseButton {
+    0% { transform: scale(1); box-shadow: 0 0 15px var(--success-color); }
+    50% { transform: scale(1.05); box-shadow: 0 0 25px var(--success-color); }
+    100% { transform: scale(1); box-shadow: 0 0 15px var(--success-color); }
+}
+
+/* ==========================================================================
+   FORMULÁRIOS
+   ========================================================================== */
+input[type="text"],
+input[type="number"],
+select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: var(--spacing-md);
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    color: var(--text-primary);
+}
+
+input[type="checkbox"] {
+    margin-right: 5px;
+    transform: scale(1.2);
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* ==========================================================================
+   MODAIS GERAIS
+   ========================================================================== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: var(--z-modal);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background-color: var(--bg-card);
+    padding: var(--spacing-lg);
+    border-radius: var(--border-radius);
+    width: 90%;
+    max-width: 500px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+}
+
+.primary-btn {
+    background-color: var(--success-color);
+    color: #000;
+    border: none;
+    padding: 8px 20px;
+    border-radius: var(--border-radius);
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* ==========================================================================
+   SYSTEM MODALS (ALERT/CONFIRM/PROMPT)
+   ========================================================================== */
+.sys-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    z-index: var(--z-sys-modal);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(8px);
+    animation: fadeIn 0.2s ease;
+}
+
+.sys-modal-content {
+    background-color: var(--bg-card);
+    border: 2px solid var(--accent-color);
+    padding: 24px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 0 30px rgba(124, 77, 255, 0.3);
+    text-align: center;
+    animation: scaleIn 0.2s ease;
+}
+
+.sys-modal-message {
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    white-space: pre-line;
+}
+
+.sys-modal-input {
+    width: 100%;
+    padding: 12px;
+    background-color: #000;
+    border: 1px solid var(--border-color);
+    color: #fff;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-size: 1rem;
+}
+
+.sys-modal-input:focus {
+    border-color: var(--accent-color);
+    outline: none;
+}
+
+.sys-modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+@keyframes scaleIn {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* ==========================================================================
+   UTILITÁRIOS
+   ========================================================================== */
+.hidden {
+    display: none !important;
+}
+
+.pulsing-text {
+    animation: textPulse 2s infinite;
+}
+
+@keyframes textPulse {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; text-shadow: 0 0 10px currentColor; }
+    100% { opacity: 0.5; }
+}

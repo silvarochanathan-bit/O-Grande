@@ -1,0 +1,400 @@
+/* ==========================================================================
+   GYM.CSS - MÓDULO IRON FORGE v3.0
+   Tema: Dark, Industrial, Gamified.
+   ========================================================================== */
+
+:root {
+    --gym-bg: #121212;
+    --gym-card-bg: #1e1e1e;
+    --gym-input-bg: #2c2c2c;
+    --gym-border: #333;
+    
+    /* Cores de Fase */
+    --phase-cutting: #ff5252;
+    --phase-maintenance: #448aff;
+    --phase-bulking: #69f0ae;
+    
+    /* Cores de Feedback */
+    --gym-gold: #ffd700;
+    --gym-success: #00e676;
+    --gym-danger: #f44336;
+    --gym-text: #e0e0e0;
+    --gym-text-muted: #888;
+}
+
+#gym-container {
+    padding: 10px;
+    max-width: 600px; /* Foco mobile */
+    margin: 0 auto;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* --- 1. HEADER DE CONTEXTO --- */
+
+.gym-header {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    overflow-x: auto;
+    padding-bottom: 5px;
+}
+
+.gym-stat-box {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--gym-border);
+    border-left: 3px solid transparent; /* Cor injetada via JS */
+    border-radius: 6px;
+    padding: 8px 12px;
+    flex: 1;
+    min-width: 120px;
+    display: flex;
+    flex-direction: column;
+}
+
+.gym-stat-box.streak { border-left-color: var(--gym-gold); }
+
+.gym-label {
+    font-size: 0.7rem;
+    color: var(--gym-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.gym-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--gym-text);
+    margin-top: 4px;
+}
+
+.gym-actions {
+    display: flex;
+    align-items: center;
+}
+
+.gym-rest-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--gym-border);
+    color: var(--gym-text-muted);
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+}
+.gym-rest-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+/* --- 2. CARD DE EXERCÍCIO --- */
+
+.gym-card {
+    background: var(--gym-card-bg);
+    border: 1px solid var(--gym-border);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    transition: border-color 0.3s;
+}
+
+.gym-card:hover { border-color: #555; }
+
+.gym-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.gym-ex-info h4 {
+    margin: 0;
+    color: var(--gym-text);
+    font-size: 1.1rem;
+}
+
+.gym-pr-badge {
+    font-size: 0.75rem;
+    color: var(--gym-gold);
+    background: rgba(255, 215, 0, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 4px;
+    display: inline-block;
+    border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+/* TIMER VISUAL */
+.gym-timer-display {
+    font-family: 'Courier New', monospace;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--gym-text);
+    background: #000;
+    padding: 5px 10px;
+    border-radius: 4px;
+    min-width: 60px;
+    text-align: center;
+    border: 1px solid var(--gym-border);
+}
+
+.gym-timer-display.ready {
+    background: var(--gym-success);
+    color: #000;
+    animation: pulse 1s infinite;
+}
+
+/* INPUTS E AÇÕES */
+.gym-inputs-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    margin-bottom: 15px;
+}
+
+.gym-input-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.gym-input-group label {
+    font-size: 0.7rem;
+    color: var(--gym-text-muted);
+    margin-bottom: 4px;
+}
+
+.gym-input-group input {
+    background: var(--gym-input-bg);
+    border: 1px solid var(--gym-border);
+    color: #fff;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 1rem;
+    text-align: center;
+}
+
+.gym-check-btn {
+    flex: 2;
+    background: var(--gym-success);
+    color: #000;
+    border: none;
+    border-radius: 4px;
+    height: 38px; /* Alinha com input */
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    transition: transform 0.1s;
+}
+.gym-check-btn:active { transform: scale(0.95); }
+
+/* TRACK DE SÉRIES (BOLINHAS) */
+.gym-sets-track {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 20px;
+    justify-content: center;
+}
+
+.set-bubble {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--gym-text-muted);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.set-bubble.done {
+    background: var(--gym-success);
+    border-color: var(--gym-success);
+    transform: scale(1.2);
+    box-shadow: 0 0 8px rgba(0, 230, 118, 0.6);
+}
+
+/* FOOTER DO CARD */
+.gym-card-footer {
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    padding-top: 10px;
+}
+
+.gym-opt-btn {
+    background: transparent;
+    border: none;
+    color: var(--gym-text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-decoration: underline;
+}
+.gym-opt-btn:hover { color: #fff; }
+
+.gym-opt-btn.finish { color: var(--gym-text); opacity: 0.6; }
+.gym-opt-btn.finish:hover { opacity: 1; color: var(--gym-gold); }
+
+/* --- 3. CARDIO EXPONENCIAL --- */
+
+.gym-cardio-section {
+    background: linear-gradient(135deg, #1e1e1e 0%, #252525 100%);
+    border: 1px solid var(--gym-border);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.gym-cardio-section h4 {
+    margin: 0 0 10px 0;
+    color: #90caf9;
+}
+
+.cardio-progress-bar {
+    height: 20px;
+    background: #000;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 15px;
+}
+
+.cardio-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2196f3, #90caf9);
+    transition: width 0.5s ease;
+}
+
+.cardio-text {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 1px 2px #000;
+}
+
+.cardio-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.bait-btn {
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.1s;
+    color: #fff;
+}
+.bait-btn:active { transform: scale(0.9); }
+
+.bait-btn.big {
+    background: #1565c0;
+    padding: 10px 20px;
+    font-size: 1rem;
+    width: 100%;
+}
+
+.bait-btn.medium {
+    background: #0097a7;
+    padding: 8px 15px;
+    font-size: 0.9rem;
+    flex: 1;
+}
+
+.bait-btn.small {
+    background: #ff9800;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+}
+
+.bait-btn.god-mode {
+    background: #f50057;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    animation: shake 2s infinite;
+}
+
+.cardio-info {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--gym-text-muted);
+    margin-top: 8px;
+    font-style: italic;
+}
+
+/* --- 4. BOTAO FINALIZAR TREINO --- */
+.gym-finish-btn {
+    width: 100%;
+    padding: 15px;
+    background: rgba(255,255,255,0.05);
+    border: 2px dashed var(--gym-border);
+    color: var(--gym-text-muted);
+    font-weight: bold;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+}
+.gym-finish-btn:hover {
+    border-color: var(--gym-success);
+    color: var(--gym-success);
+    background: rgba(0, 230, 118, 0.05);
+}
+
+/* --- 5. MODAL JURAMENTO --- */
+.gym-oath-modal {
+    text-align: center;
+    padding: 10px;
+}
+
+.gym-oath-modal h3 {
+    color: var(--gym-gold);
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+.oath-text {
+    font-style: italic;
+    font-size: 1.1rem;
+    color: #fff;
+    margin: 20px 0;
+    line-height: 1.5;
+    background: rgba(0,0,0,0.3);
+    padding: 15px;
+    border-left: 3px solid var(--gym-gold);
+}
+
+.gym-xp-preview {
+    background: rgba(255,255,255,0.05);
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-family: monospace;
+}
+
+/* --- ANIMAÇÕES --- */
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.7); }
+    70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(0, 230, 118, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 230, 118, 0); }
+}
+
+@keyframes shake {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    10% { transform: translate(-1px, -2px) rotate(-1deg); }
+    20% { transform: translate(-3px, 0px) rotate(1deg); }
+    30% { transform: translate(3px, 2px) rotate(0deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    50% { transform: translate(-1px, 2px) rotate(-1deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    70% { transform: translate(3px, 1px) rotate(-1deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    90% { transform: translate(1px, 2px) rotate(0deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
+}

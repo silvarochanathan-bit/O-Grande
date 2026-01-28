@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life Game Hub - Site C</title>
+    
+    <link rel="stylesheet" href="global.css">
+    <link rel="stylesheet" href="xp.css">
+    <link rel="stylesheet" href="habits.css">
+    <link rel="stylesheet" href="tasks.css">
+    <link rel="stylesheet" href="chests.css">
+    <link rel="stylesheet" href="sounds.css">
+    <link rel="stylesheet" href="gym.css"> <style>
+        body { visibility: visible; }
+        /* Oculta o botão de voltar quando estiver no Hub */
+        body[data-current-app="hub"] .btn-back-hub { display: none; }
+    </style>
+</head>
+<body data-current-app="hub">
+
+    <header id="main-header">
+        <div class="level-container">
+            <span class="level-label">Nível</span>
+            <span id="current-level">1</span>
+        </div>
+        <div class="xp-bar-container">
+            <div id="xp-bar-fill" class="xp-bar-fill" style="width: 0%;"></div>
+            <span id="xp-text">0 / 100 XP</span>
+        </div>
+    </header>
+
+    <main id="app-content">
+
+        <div id="app-hub" class="app-module">
+            <h1 class="hub-title">Central de Comando</h1>
+            <div class="hub-grid">
+                
+                <div class="hub-card" data-app="productivity" onclick="window.GlobalApp.navigate('productivity')">
+                    <div class="hub-icon">✅</div>
+                    <span class="hub-label">Produtividade</span>
+                    <span style="font-size:0.8rem; color:#888;">Hábitos & Tarefas</span>
+                </div>
+
+                <div class="hub-card" data-app="gym" onclick="window.GlobalApp.navigate('gym')">
+                    <div class="hub-icon">💪</div>
+                    <span class="hub-label">Academia</span>
+                    <span style="font-size:0.8rem; color:#888;">Treinos & Evolução</span>
+                </div>
+
+                <div class="hub-card" data-app="diet" onclick="window.GlobalApp.navigate('diet')">
+                    <div class="hub-icon">🥗</div>
+                    <span class="hub-label">Dieta</span>
+                    <span style="font-size:0.8rem; color:#888;">Nutrição & Água</span>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="app-productivity" class="app-module">
+            
+            <nav id="main-nav">
+                <button class="nav-btn active" data-target="section-habits">Hábitos</button>
+                <button class="nav-btn" data-target="section-tasks">Tarefas</button>
+                <button class="nav-btn" data-target="section-chests">Baús</button>
+                <button class="nav-btn" data-target="section-logs">Histórico</button>
+                <button class="nav-btn" data-target="section-sounds">Configurações</button>
+            </nav>
+
+            <div class="app-internal-container">
+                
+                <section id="section-habits" class="tab-content active">
+                    <div class="section-header">
+                        <h2>Meus Hábitos</h2>
+                        <button id="btn-create-habit" class="action-btn">+ Novo Hábito</button>
+                        <button id="btn-create-group" class="action-btn">+ Novo Grupo</button>
+                    </div>
+                    <div id="habits-container" class="habits-list"></div>
+                </section>
+
+                <section id="section-tasks" class="tab-content">
+                    <div class="section-header">
+                        <h2>Lista de Tarefas</h2>
+                        <button id="btn-create-task" class="action-btn">+ Nova Tarefa</button>
+                    </div>
+                    <div id="tasks-container" class="tasks-list"></div>
+                    <div class="tasks-executed-history">
+                        <h3>Tarefas Concluídas</h3>
+                        <ul id="tasks-history-list"></ul>
+                    </div>
+                </section>
+
+                <section id="section-chests" class="tab-content">
+                    <div class="chests-layout">
+                        <div class="chests-manager">
+                            <div class="section-header">
+                                <h2>Meus Baús</h2>
+                                <button id="btn-create-chest" class="action-btn">+ Criar Baú</button>
+                            </div>
+                            <div id="chests-container"></div>
+                        </div>
+                        <div class="rewards-log">
+                            <div class="section-header">
+                                <h2>Registro de Prêmios</h2>
+                            </div>
+                            <div id="rewards-list"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="section-logs" class="tab-content">
+                    <div class="section-header">
+                        <h2>Registro de XP Ganho</h2>
+                        <button id="btn-clear-logs" class="secondary-btn">Limpar Logs</button>
+                    </div>
+                    <div class="logs-container">
+                        <table id="xp-log-table">
+                            <thead>
+                                <tr>
+                                    <th>Hora</th>
+                                    <th>Origem</th>
+                                    <th>Detalhe</th>
+                                    <th>XP</th>
+                                </tr>
+                            </thead>
+                            <tbody id="xp-log-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="section-sounds" class="tab-content">
+                    <div class="section-header">
+                        <h2>Dados e Backup</h2>
+                    </div>
+                    <div class="sounds-grid" style="margin-bottom: 30px;">
+                        <div class="data-control-card">
+                            <p style="color:var(--text-secondary); margin-bottom:15px; font-size:0.9rem;">
+                                Gerenciamento global de dados do Life Hub.
+                            </p>
+                            <div class="data-actions-row">
+                                <button class="action-btn" onclick="window.GlobalApp.exportData()">📥 Exportar</button>
+                                <div style="display:flex; gap:5px;">
+                                    <button class="secondary-btn" onclick="window.GlobalApp.triggerImport()">📤 Importar</button>
+                                    <button class="secondary-btn" title="Configurar Link de Backup" onclick="window.GlobalApp.configureBackupUrl()">🔗</button>
+                                    <button class="secondary-btn" style="border-color: var(--danger-color); color: var(--danger-color);" onclick="window.GlobalApp.hardReset()">🗑️ Resete</button>
+                                </div>
+                            </div>
+                            <input type="file" id="file-import-input" accept=".json" style="display:none;">
+                        </div>
+                    </div>
+
+                    <div class="section-header">
+                        <h2>Configuração de Sons</h2>
+                    </div>
+                    <div class="sounds-grid">
+                        <div class="sound-control-card">
+                            <label>Clique</label>
+                            <input type="file" id="upload-click-sound" accept="audio/*">
+                            <input type="range" id="vol-click" min="0" max="100" value="50">
+                        </div>
+                        <div class="sound-control-card">
+                            <label>XP</label>
+                            <input type="file" id="upload-xp-sound" accept="audio/*">
+                            <input type="range" id="vol-xp" min="0" max="100" value="50">
+                        </div>
+                        <div class="sound-control-card">
+                            <label>Level Up</label>
+                            <input type="file" id="upload-levelup-sound" accept="audio/*">
+                            <input type="range" id="vol-levelup" min="0" max="100" value="50">
+                        </div>
+                        <div class="sound-control-card">
+                            <label>Baú</label>
+                            <input type="file" id="upload-chest-sound" accept="audio/*">
+                            <input type="range" id="vol-chest" min="0" max="100" value="50">
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+
+        <div id="app-gym" class="app-module">
+            <div class="app-internal-container">
+                <div class="section-header">
+                    <h2>Academia & Treinos</h2>
+                    <button id="btn-create-routine" class="action-btn">+ Nova Rotina</button>
+                </div>
+                
+                <div id="gym-container">
+                    </div>
+            </div>
+        </div>
+
+        <div id="app-diet" class="app-module">
+            <div class="app-internal-container">
+                <div class="section-header">
+                    <h2>Nutrição & Dieta</h2>
+                    <div class="water-tracker-mini">
+                        <span>💧 Água Hoje: <strong id="diet-water-display">0ml</strong></span>
+                    </div>
+                </div>
+
+                <div id="diet-container">
+                    <div style="text-align:center; padding:40px; color:#666; border:1px dashed #444; border-radius:8px;">
+                        <h3>🚧 Módulo em Construção</h3>
+                        <p>Controle de refeições, calorias e hidratação.</p>
+                        <p style="margin-top:10px; font-size:0.8rem; color:#00e676;">Manter a dieta gera XP constante.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <button class="btn-back-hub" onclick="window.GlobalApp.navigate('hub')" title="Voltar ao Hub">🏠</button>
+
+    <div id="modal-slot-machine" class="modal-overlay hidden">
+        <div class="slot-machine-container">
+            <div id="slot-icon-area" class="slot-header-icon">🎁</div>
+            <div class="slot-window"><div id="slot-roller" class="slot-roller"></div></div>
+            <div id="slot-result-area" class="hidden">
+                <h2 id="slot-prize-name" class="pulsing-text">Prêmio</h2>
+                <div id="slot-path" class="prize-path">Detalhe</div>
+                <button id="btn-claim-reward" class="claim-btn">RECEBER</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-habit-edit" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3>Editar Hábito</h3>
+            <form id="form-habit">
+                <input type="hidden" id="habit-id">
+                <label>Nome</label>
+                <input type="text" id="habit-name" required>
+                <label>XP Base</label>
+                <input type="number" id="habit-xp" required>
+                
+                <label>Frequência</label>
+                <div class="days-selector">
+                    <label><input type="checkbox" value="0"> Dom</label>
+                    <label><input type="checkbox" value="1"> Seg</label>
+                    <label><input type="checkbox" value="2"> Ter</label>
+                    <label><input type="checkbox" value="3"> Qua</label>
+                    <label><input type="checkbox" value="4"> Qui</label>
+                    <label><input type="checkbox" value="5"> Sex</label>
+                    <label><input type="checkbox" value="6"> Sáb</label>
+                </div>
+                
+                <label>Tipo</label>
+                <select id="habit-type">
+                    <option value="check">Check Simples</option> <option value="counter">Contador</option>
+                </select>
+                
+                <div id="habit-counter-config" class="hidden">
+                    <label>Meta:</label>
+                    <input type="number" id="habit-target-count" value="1">
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" id="btn-cancel-habit" class="secondary-btn">Cancelar</button>
+                    <button type="submit" class="primary-btn">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-chest-item-edit" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3>Editar Item</h3>
+            <form id="form-chest-item">
+                <input type="hidden" id="chest-item-id"><input type="hidden" id="chest-parent-id">
+                <label>Nome</label><input type="text" id="chest-item-name" required>
+                <label>Tipo</label>
+                <select id="chest-item-type">
+                    <option value="item">Item Final</option>
+                    <option value="folder">Sub-pasta</option>
+                </select>
+                <label>Chance (%)</label><input type="number" id="chest-item-chance" min="1" max="99" required>
+                <div class="modal-actions">
+                    <button type="button" id="btn-cancel-chest-item" class="secondary-btn">Cancelar</button>
+                    <button type="submit" class="primary-btn">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="global.js"></script>
+    <script src="xp.js"></script>
+    <script src="sounds.js"></script>
+
+    <script src="habits-model.js"></script>
+    <script src="habits-view.js"></script>
+    <script src="habits-controller.js"></script>
+
+    <script src="tasks.js"></script>
+    <script src="chests.js"></script>
+
+    <script src="gym-model.js"></script>
+    <script src="gym-view.js"></script>
+    <script src="gym-controller.js"></script>
+
+    <script src="diet.js"></script>
+
+</body>
+</html>
