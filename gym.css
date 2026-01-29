@@ -127,6 +127,7 @@
     align-items: center;
     margin-bottom: 20px;
     padding: 0 5px;
+    margin-top: 60px; /* <--- AJUSTE SOLICITADO: Aumentado para 60px */
 }
 
 .gym-title {
