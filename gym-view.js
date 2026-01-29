@@ -1,8 +1,8 @@
 /**
- * GYM-VIEW.JS (V57 - MAXIMALIST & FULL FEATURES)
+ * GYM-VIEW.JS (V5.8.1 - AUDITOR FIX)
  * Camada de Visualização.
  * Responsável por: Renderização de Treinos, Lógica de Inputs Largos,
- * Botões de Estado (Aquecimento/Válida), Gráficos Seguros e Auditoria.
+ * Botões de Estado, Gráficos Seguros e Auditoria Inteligente.
  */
 
 window.GymView = {
@@ -76,8 +76,9 @@ window.GymView = {
             this._renderHistory(container);
         }
         
-        // Sincroniza o Widget do Auditor (canto superior direito)
-        this.updateAuditorWithGym();
+        // Sincroniza o Widget do Auditor em MODO SILENCIOSO (autoShow = false)
+        // Isso atualiza os dados se o widget já estiver aberto, mas não força a abertura.
+        this.updateAuditorWithGym(false);
     },
 
     // =========================================
@@ -341,8 +342,9 @@ window.GymView = {
 
     /**
      * Atualiza o Widget Flutuante do Auditor com o total de XP de hoje.
+     * @param {boolean} autoShow - Se true, força o widget a aparecer. Se false, apenas atualiza valores.
      */
-    updateAuditorWithGym: function() {
+    updateAuditorWithGym: function(autoShow = true) {
         const auditWidget = document.getElementById('xp-audit-widget');
         if (!auditWidget) return;
 
@@ -364,7 +366,12 @@ window.GymView = {
         if (totalXP > 0) {
             gymRow.style.display = 'flex';
             gymRow.innerHTML = `<span>🏋️ Academia:</span> <span>+${totalXP} XP</span>`;
-            auditWidget.classList.remove('hidden'); // Força exibição se houver dados
+            
+            // Só remove a classe 'hidden' se for uma interação ativa (autoShow = true)
+            // Se for carregamento de página, respeita o estado atual (se estiver fechado, continua fechado)
+            if (autoShow) {
+                auditWidget.classList.remove('hidden');
+            }
         } else {
             gymRow.style.display = 'none';
         }
@@ -424,7 +431,9 @@ window.GymView = {
     toggleCheckVisual: function(exIndex, setIndex, isDone) {
         const btn = document.getElementById(`btn-check-${exIndex}-${setIndex}`);
         if (btn) btn.classList.toggle('checked', isDone);
-        this.updateAuditorWithGym();
+        
+        // Interação ativa: Força atualização E exibição do widget
+        this.updateAuditorWithGym(true);
     },
 
     toggleModal: function(id, show) {
