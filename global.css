@@ -539,18 +539,17 @@ label {
    WIDGET DE AUDITORIA (NOTA FISCAL)
    ========================================================================== */
 #xp-audit-widget {
-    position: fixed;
-    /* Padrão Mobile: Fixo embaixo */
-    bottom: 80px; 
-    left: 5%;
+    position: relative; /* Padrão Mobile: Fluxo normal (Rodapé) */
     width: 90%;
-    max-height: 60vh;
+    margin: 20px auto;
+    margin-bottom: 120px; /* Garante que não fique escondido atrás dos botões fixos */
+    max-height: none; /* Permite crescer conforme o conteúdo */
     background-color: rgba(30, 30, 30, 0.98);
     border: 1px solid var(--accent-color);
     border-radius: 12px;
     padding: 15px;
     z-index: var(--z-overlay);
-    overflow-y: auto;
+    overflow-y: visible; /* Remove scroll interno no mobile */
     box-shadow: 0 -5px 25px rgba(0,0,0,0.5);
     backdrop-filter: blur(10px);
     display: none; /* Controlado via JS e classe hidden */
@@ -609,10 +608,10 @@ label {
     to { transform: translateX(0); opacity: 1; }
 }
 
-/* Padding Body Helper (Mobile) - Evita sobreposição */
-body.audit-active .app-internal-container {
+/* Padding Body Helper (Mobile) - Evita sobreposição (Desativado no novo modelo relativo) */
+/* body.audit-active .app-internal-container {
     padding-bottom: 400px;
-}
+} */
 
 /* ==========================================================================
    MEDIA QUERIES (DESKTOP)
@@ -645,14 +644,17 @@ body.audit-active .app-internal-container {
         padding: 0 30px;
     }
 
-    /* Widget Desktop: Canto superior direito */
+    /* Widget Desktop: Canto superior direito (Volta a ser Fixo) */
     #xp-audit-widget {
+        position: fixed;
+        margin: 0; /* Reseta margem mobile */
         bottom: auto;
         top: 80px;
         left: auto;
         right: 20px;
         width: 320px;
         max-height: 80vh;
+        overflow-y: auto; /* Restaura scroll interno se necessário */
         box-shadow: 0 5px 25px rgba(0,0,0,0.5);
         animation: slideInRight 0.3s ease-out;
     }
