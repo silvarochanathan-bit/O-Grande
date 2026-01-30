@@ -45,6 +45,7 @@ window.ChestManager = {
                 </div>
                 <div class="overlay-gain-text" id="phantom-gain-text">+1 SLOT</div>
             </div>
+            <button id="btn-claim-loot">RECEBER</button>
         `;
         document.body.appendChild(div);
         this.overlay = div;
@@ -94,44 +95,78 @@ window.ChestManager = {
         const overlay = document.getElementById('overlay-loot-feedback');
         if (!overlay) return;
 
+        // 1. Atualiza visual do cofre (Texto e Largura Final)
         this.updatePhantomVault(type);
         
+        // 2. Prepara estado inicial da animação (Pausa)
+        const elBar = document.getElementById('phantom-bar');
+        const targetWidth = elBar.style.width; // Captura largura final
+        elBar.style.width = '0%'; // Zera para animar depois
+
         const gainText = document.getElementById('phantom-gain-text');
         if (gainText) gainText.textContent = detailText;
-        gainText.style.opacity = '0';
+        gainText.style.opacity = '0'; // Esconde texto de ganho
 
+        const btnClaim = document.getElementById('btn-claim-loot');
+        btnClaim.style.display = 'block'; // Garante que está no DOM
+        btnClaim.classList.remove('visible'); // Inicia invisível (opacity 0 via CSS)
+
+        // 3. Exibe Overlay e Toca Som do Baú
         overlay.classList.add('active');
         overlay.style.display = 'flex';
+        
+        if (window.SoundManager) window.SoundManager.play('chest');
 
-        const coin = document.createElement('div');
-        coin.className = 'anim-coin-overlay';
-        coin.textContent = type === 'crystal' ? '💎' : '🪙';
-        overlay.appendChild(coin);
-
-        void coin.offsetWidth;
-
-        requestAnimationFrame(() => {
-            coin.classList.add('flying');
-        });
-
+        // Delay narrativo para o botão aparecer
         setTimeout(() => {
-            const vault = overlay.querySelector('.phantom-vault');
-            if (vault) {
-                vault.classList.remove('pulse-gain');
-                void vault.offsetWidth;
-                vault.classList.add('pulse-gain');
-            }
+            btnClaim.classList.add('visible');
+        }, 1200);
+
+        // 4. Configura Ação de Clique
+        btnClaim.onclick = () => {
+            if (window.SoundManager) window.SoundManager.play('click');
             
-            if (coin.parentNode) coin.parentNode.removeChild(coin);
-            if (window.SoundManager) window.SoundManager.play('xp');
-            if (gainText) gainText.style.opacity = '1';
+            // Esconde botão suavemente
+            btnClaim.classList.remove('visible');
+            setTimeout(() => { btnClaim.style.display = 'none'; }, 300);
 
+            // Anima Barra
+            requestAnimationFrame(() => {
+                elBar.style.width = targetWidth;
+            });
+
+            // Cria e Anima Moeda
+            const coin = document.createElement('div');
+            coin.className = 'anim-coin-overlay';
+            coin.textContent = type === 'crystal' ? '💎' : '🪙';
+            overlay.appendChild(coin);
+
+            void coin.offsetWidth;
+
+            requestAnimationFrame(() => {
+                coin.classList.add('flying');
+            });
+
+            // Sequência de Finalização
             setTimeout(() => {
-                overlay.classList.remove('active');
-                setTimeout(() => { overlay.style.display = 'none'; }, 300);
-            }, 1200);
+                const vault = overlay.querySelector('.phantom-vault');
+                if (vault) {
+                    vault.classList.remove('pulse-gain');
+                    void vault.offsetWidth;
+                    vault.classList.add('pulse-gain');
+                }
+                
+                if (coin.parentNode) coin.parentNode.removeChild(coin);
+                // Som de XP removido, apenas Click na coleta
+                if (gainText) gainText.style.opacity = '1';
 
-        }, 600);
+                setTimeout(() => {
+                    overlay.classList.remove('active');
+                    setTimeout(() => { overlay.style.display = 'none'; }, 300);
+                }, 1000); // 1seg após impacto
+
+            }, 600); // Tempo de voo da moeda
+        };
     },
 
     // =========================================================================
