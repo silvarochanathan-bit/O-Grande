@@ -1,7 +1,7 @@
 /**
- * GYM-CONTROLLER.JS (V57 - SET TYPE SELECTOR UX)
+ * GYM-CONTROLLER.JS (V6.0 - HYBRID RUNNING CONTROL)
  * Orquestrador do Módulo Iron Forge.
- * Gerencia: Modal de Tipo de Série, Memória Muscular e Auditoria.
+ * Gerencia: Fase, Juramento, Cardio Híbrido (Timer + HIT) e Fluxo de Sessão.
  */
 
 window.GymController = {
@@ -10,12 +10,13 @@ window.GymController = {
     restInterval: null,
     currentRoutineEditing: null, // ID da rotina sendo editada
     currentSetEditing: null,     // { exIndex, setIndex } para o modal de tipo de série
+    currentOathExerciseIndex: null, // Exercício aguardando juramento
 
     /**
      * Inicialização e Bindings.
      */
     init: function() {
-        console.log("[GymController] Motor V57 (UX Series) Ativado.");
+        console.log("[GymController] Motor V6.0 (Hybrid Run) Ativado.");
 
         if (window.GymView) {
             window.GymView.init('gym-container');
@@ -83,7 +84,7 @@ window.GymController = {
             }
         });
 
-        // 2. NOVO: Listeners do Modal de Seleção de Tipo de Série (V57)
+        // 2. Listeners do Modal de Tipo de Série
         document.getElementById('btn-select-warmup')?.addEventListener('click', () => {
             this.confirmSetType(true); // true = é aquecimento
         });
@@ -97,7 +98,16 @@ window.GymController = {
             this.currentSetEditing = null;
         });
 
-        // 3. Fechamento Geral de Modais
+        // 3. NOVO: Listeners do Modal de Juramento (V5.9)
+        document.getElementById('btn-oath-yes')?.addEventListener('click', () => {
+            this.handleOath(true);
+        });
+        
+        document.getElementById('btn-oath-no')?.addEventListener('click', () => {
+            this.handleOath(false);
+        });
+
+        // 4. Fechamento Geral de Modais
         const closeSelectors = [
             { btn: 'btn-cancel-routine', modal: 'modal-gym-routine' },
             { btn: 'btn-cancel-ex-create', modal: 'modal-gym-exercise-create' },
@@ -112,7 +122,7 @@ window.GymController = {
             });
         });
 
-        // 4. Pesquisa e Atalhos
+        // 5. Pesquisa e Atalhos
         const searchInput = document.getElementById('exercise-search');
         if (searchInput) {
             searchInput.oninput = (e) => {
@@ -134,23 +144,29 @@ window.GymController = {
     },
 
     // =========================================
-    // 1. LÓGICA DE TIPO DE SÉRIE (V57)
+    // 0. CONTROLE DE FASE (V5.9)
     // =========================================
 
-    /**
-     * Abre o modal para escolher entre Aquecimento ou Válida.
-     * Substitui o antigo toggle direto.
-     */
+    setGymPhase: function(phase) {
+        if (window.SoundManager) window.SoundManager.play('click');
+        
+        if (!window.GlobalApp.data.gym.settings) window.GlobalApp.data.gym.settings = {};
+        window.GlobalApp.data.gym.settings.currentPhase = phase;
+        
+        window.GlobalApp.saveData();
+        this.render(); // Re-renderiza para atualizar UI do seletor
+    },
+
+    // =========================================
+    // 1. LÓGICA DE TIPO DE SÉRIE
+    // =========================================
+
     openSetTypeSelector: function(exIndex, setIndex) {
         if (window.SoundManager) window.SoundManager.play('click');
         this.currentSetEditing = { exIndex, setIndex };
         window.GymView.toggleModal('modal-gym-set-type', true);
     },
 
-    /**
-     * Aplica a escolha do usuário e fecha o modal.
-     * @param {boolean} isWarmupTarget - Se o usuário escolheu "Aquecimento" (true) ou "Válida" (false).
-     */
     confirmSetType: function(isWarmupTarget) {
         if (!this.currentSetEditing) return;
         
@@ -159,8 +175,6 @@ window.GymController = {
         
         if (session) {
             const set = session.exercises[exIndex].sets[setIndex];
-            
-            // Só chama o Model se o estado for diferente do atual para evitar logs desnecessários
             if (set.isWarmup !== isWarmupTarget) {
                 window.GymModel.toggleSetWarmup(exIndex, setIndex);
             }
@@ -168,7 +182,7 @@ window.GymController = {
 
         window.GymView.toggleModal('modal-gym-set-type', false);
         this.currentSetEditing = null;
-        this.render(); // Re-renderiza para atualizar o ícone (🔥 ou 💪)
+        this.render();
     },
 
     // =========================================
@@ -247,22 +261,22 @@ window.GymController = {
         const session = window.GymModel.getActiveSession();
         if (!session) return;
 
-        const hasSets = session.exercises.some(ex => ex.sets.some(s => s.done));
+        // V6.0: Verifica se há atividade (Musculação OU Corrida)
+        const hasSets = session.exercises.some(ex => ex.sets && ex.sets.some(s => s.done));
+        const hasRun = session.exercises.some(ex => ex.name === 'Corrida' && (ex.runDistance > 0 || (ex.sets && ex.sets.length > 0)));
         
-        if (!hasSets) {
-            if (!await confirm("Nenhuma série marcada. Finalizar treino?")) return;
+        if (!hasSets && !hasRun) {
+            if (!await confirm("Nenhuma atividade registrada. Finalizar treino?")) return;
         } else {
             if (!await confirm("Concluir treino e salvar histórico?")) return;
         }
 
         clearInterval(this.sessionInterval);
         
+        // Model calcula Bônus de Completude e entrega XP
         window.GymModel.finishSession();
         
-        if (hasSets) {
-            window.XPManager.gainXP(window.GymModel.config.xpPerFinish, "🏆 Treino Concluído!", { type: 'gym' });
-            if (window.SoundManager) window.SoundManager.play('levelup');
-        }
+        if (window.SoundManager) window.SoundManager.play('levelup');
 
         this.render();
     },
@@ -278,7 +292,7 @@ window.GymController = {
     },
 
     // =========================================
-    // 4. AÇÕES DE SÉRIE (CHECK / PERSISTÊNCIA)
+    // 4. AÇÕES DE SÉRIE & JURAMENTO
     // =========================================
 
     toggleCheck: function(exIndex, setIndex) {
@@ -294,13 +308,40 @@ window.GymController = {
         if (window.SoundManager) window.SoundManager.play('click');
 
         const isChecked = window.GymModel.toggleSetCheck(exIndex, setIndex, v1, v2, restVal);
-        
         window.GymView.toggleCheckVisual(exIndex, setIndex, isChecked);
 
         if (isChecked) {
             const seconds = parseInt(restVal) || 60;
             this.startRestTimer(seconds);
+
+            // V5.9: Verifica Gatilho do Juramento
+            const session = window.GymModel.getActiveSession();
+            const ex = session.exercises[exIndex];
+            
+            // Se for a última série E ainda não jurou
+            if (setIndex === ex.sets.length - 1 && !ex.oathTaken) {
+                this.currentOathExerciseIndex = exIndex;
+                setTimeout(() => {
+                    window.GymView.toggleModal('modal-gym-oath', true);
+                }, 500); // Pequeno delay para UX
+            }
         }
+    },
+
+    handleOath: function(accepted) {
+        if (this.currentOathExerciseIndex === null) return;
+
+        window.GymView.toggleModal('modal-gym-oath', false);
+
+        if (accepted) {
+            if (window.SoundManager) window.SoundManager.play('xp');
+            const bonus = window.GymModel.applyOathBonus(this.currentOathExerciseIndex);
+            if (bonus > 0) {
+                alert(`🛡️ JURAMENTO ACEITO!\nBônus de Intensidade: +${bonus} XP`);
+            }
+        }
+
+        this.currentOathExerciseIndex = null;
     },
 
     updateSetData: function(exIndex, setIndex) {
@@ -390,6 +431,88 @@ window.GymController = {
         if (await confirm("Remover registo e estornar XP?")) {
             window.GymModel.revertLog(logId);
             this.render();
+        }
+    },
+
+    // =========================================
+    // 7. MÓDULO DE CORRIDA HÍBRIDO (V6.0)
+    // =========================================
+
+    // Ações de HIT (Lista) - RESTAURADAS
+    addHitInterval: function(exIndex) {
+        if (window.SoundManager) window.SoundManager.play('click');
+        window.GymModel.addSet(exIndex);
+        this.render();
+    },
+
+    removeHitInterval: function(exIndex, setIndex) {
+        if (window.SoundManager) window.SoundManager.play('click');
+        const session = window.GymModel.getActiveSession();
+        if (session && session.exercises[exIndex].sets[setIndex]) {
+            session.exercises[exIndex].sets.splice(setIndex, 1);
+            window.GlobalApp.saveData();
+            this.render();
+        }
+    },
+
+    updateHitTime: function(exIndex, setIndex, secondsToAdd) {
+        if (window.SoundManager) window.SoundManager.play('click');
+        
+        const inputId = `hit-input-${exIndex}-${setIndex}`; 
+        const el = document.getElementById(inputId);
+        const session = window.GymModel.getActiveSession();
+        
+        if (el && session) {
+            let current = parseInt(el.value) || 0;
+            let newVal = current + secondsToAdd;
+            if (newVal < 0) newVal = 0;
+            
+            el.value = newVal;
+            
+            // Persiste no modelo
+            const set = session.exercises[exIndex].sets[setIndex];
+            set.val1 = newVal; 
+            window.GlobalApp.saveData();
+        }
+    },
+
+    // Ações de Dashboard (Timer + Distância) - NOVAS V6.0
+    toggleRunTimer: function(exIndex) {
+        if (window.SoundManager) window.SoundManager.play('click');
+        const newState = window.GymModel.toggleRunTimer(exIndex);
+        // Não renderiza tudo para não piscar, o timer roda via setInterval na View se necessário
+        // Mas para atualizar o ícone Play/Pause:
+        this.render(); 
+    },
+
+    promptSetPR: function() {
+        if (window.SoundManager) window.SoundManager.play('click');
+        const val = prompt("Qual seu PR atual de distância? (Ex: 5 ou 5.5)");
+        if (val) {
+            window.GymModel.setRunningPR(val);
+            this.render();
+        }
+    },
+
+    addRunShortcut: function(exIndex, kmDelta) {
+        if (window.SoundManager) window.SoundManager.play('click');
+        const isGodMode = window.GymModel.addRunDistance(exIndex, kmDelta);
+        if (isGodMode) {
+            if (window.SoundManager) window.SoundManager.play('levelup');
+            alert("🏆 NOVO RECORDE PESSOAL (PR) ALCANÇADO!");
+        }
+        this.render();
+    },
+
+    addRunManual: function(exIndex) {
+        if (window.SoundManager) window.SoundManager.play('click');
+        const el = document.getElementById(`run-manual-km-${exIndex}`);
+        if (el) {
+            const val = parseFloat(el.value);
+            if (!isNaN(val) && val > 0) {
+                window.GymModel.updateRunDistanceManual(exIndex, val);
+                this.render();
+            }
         }
     }
 };
