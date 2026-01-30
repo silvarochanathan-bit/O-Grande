@@ -11,7 +11,8 @@ window.SoundManager = {
         click: 200,      
         xp: 1000,        
         levelup: 4000,   
-        chest: 6000      
+        chest: 6000,
+        coin: 500      
     },
 
     // Caminhos padrão caso o usuário não faça upload
@@ -19,11 +20,12 @@ window.SoundManager = {
         click: 'audio/Clique de botão.mp3',
         xp: 'audio/Ganho de XP.mp3',
         levelup: 'audio/Level up.mp3',
-        chest: 'audio/Ganho de baú (1).mp3'
+        chest: 'audio/Ganho de baú (1).mp3',
+        coin: 'audio/Moeda.mp3'
     },
 
     // Tipos suportados
-    types: ['click', 'xp', 'levelup', 'chest'],
+    types: ['click', 'xp', 'levelup', 'chest', 'coin'],
 
     init: function() {
         document.addEventListener('SiteC_DataReady', () => {
@@ -41,8 +43,12 @@ window.SoundManager = {
                 click: { url: null, volume: 50 },
                 xp: { url: null, volume: 50 },
                 levelup: { url: null, volume: 50 },
-                chest: { url: null, volume: 50 }
+                chest: { url: null, volume: 50 },
+                coin: { url: null, volume: 50 }
             };
+        } else if (!window.GlobalApp.data.settings.sounds.coin) {
+            // Garante integridade se o save já existir mas sem o novo som
+            window.GlobalApp.data.settings.sounds.coin = { url: null, volume: 50 };
         }
     },
 
