@@ -391,6 +391,25 @@ window.GlobalApp = {
         }
     },
 
+    // --- CONTROLE CENTRALIZADO DO AUDITOR (NOTA FISCAL) ---
+    toggleAuditWidget: function() {
+        const widget = document.getElementById('xp-audit-widget');
+        const body = document.body;
+        if (!widget) return;
+
+        // Se tem a classe hidden, está escondido (pelo CSS padrão ou classe)
+        const isHidden = widget.classList.contains('hidden');
+
+        if (isHidden) {
+            widget.classList.remove('hidden');
+            body.classList.add('audit-active'); // Ajusta padding mobile
+            if (window.SoundManager) window.SoundManager.play('click');
+        } else {
+            widget.classList.add('hidden');
+            body.classList.remove('audit-active');
+        }
+    },
+
     hardReset: async function() {
         if (window.SoundManager) window.SoundManager.play('click');
         const confirmed = await confirm("⚠️ ATENÇÃO: Isso apagará TODOS os dados permanentemente. Não pode ser desfeito.\n\nDeseja continuar?");
@@ -419,5 +438,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }));
 
     document.getElementById('file-import-input')?.addEventListener('change', (e) => window.GlobalApp.handleFileImport(e));
+    
+    // LISTENER: Botão de Alternar Auditoria
+    document.getElementById('btn-audit-toggle')?.addEventListener('click', () => {
+        window.GlobalApp.toggleAuditWidget();
+    });
+
+    // LISTENER: Atalho Global (Alt + A) para Auditoria
+    document.addEventListener('keydown', (e) => {
+        if (e.altKey && (e.key === 'a' || e.key === 'A')) {
+            e.preventDefault();
+            window.GlobalApp.toggleAuditWidget();
+        }
+    });
+
     document.dispatchEvent(new Event('SiteC_DataReady'));
 });
