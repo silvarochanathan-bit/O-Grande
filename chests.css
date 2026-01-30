@@ -310,7 +310,7 @@
     transform: scale(0.8);
     opacity: 0;
     transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s;
-    margin-bottom: 50px; /* Espaço para a moeda voar de baixo */
+    margin-bottom: 30px; /* Espaço para o botão e a moeda */
 }
 
 #overlay-loot-feedback.active .phantom-vault {
@@ -364,4 +364,50 @@
 #overlay-loot-feedback.active .overlay-gain-text {
     opacity: 1;
     transform: translateY(0);
+}
+
+/* Botão RECEBER (Novo fluxo - Design Neon/Dark) */
+#btn-claim-loot {
+    margin-top: 15px;
+    background-color: rgba(0, 0, 0, 0.8);
+    border: 2px solid var(--success-color);
+    color: var(--success-color);
+    padding: 12px 40px;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 1.1rem;
+    cursor: pointer;
+    box-shadow: 0 0 15px rgba(0, 230, 118, 0.2);
+    z-index: 10001;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    
+    /* Estados de Entrada */
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
+}
+
+#btn-claim-loot.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+    animation: pulseSuccess 2s infinite;
+}
+
+#btn-claim-loot:hover {
+    background-color: var(--success-color);
+    color: #000;
+    box-shadow: 0 0 25px rgba(0, 230, 118, 0.6);
+}
+
+#btn-claim-loot:active {
+    transform: scale(0.95);
+}
+
+@keyframes pulseSuccess {
+    0% { box-shadow: 0 0 15px rgba(0, 230, 118, 0.2); }
+    50% { box-shadow: 0 0 25px rgba(0, 230, 118, 0.5); }
+    100% { box-shadow: 0 0 15px rgba(0, 230, 118, 0.2); }
 }
