@@ -124,7 +124,7 @@ window.ChestManager = {
 
         // 4. Configura Ação de Clique
         btnClaim.onclick = () => {
-            if (window.SoundManager) window.SoundManager.play('click');
+            if (window.SoundManager) window.SoundManager.play('coin');
             
             // Esconde botão suavemente
             btnClaim.classList.remove('visible');
@@ -157,7 +157,7 @@ window.ChestManager = {
                 }
                 
                 if (coin.parentNode) coin.parentNode.removeChild(coin);
-                // Som de XP removido, apenas Click na coleta
+                // Som de XP removido, apenas som de Moeda na coleta
                 if (gainText) gainText.style.opacity = '1';
 
                 setTimeout(() => {
