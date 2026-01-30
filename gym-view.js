@@ -1,14 +1,15 @@
 /**
- * GYM-VIEW.JS (V5.8.1 - AUDITOR FIX)
+ * GYM-VIEW.JS (V8.0 - FINAL RECEIPT RENDERER)
  * Camada de Visualização.
- * Responsável por: Renderização de Treinos, Lógica de Inputs Largos,
- * Botões de Estado, Gráficos Seguros e Auditoria Inteligente.
+ * Responsável por: Renderização de Treinos, Seletor de Fase,
+ * Interface Híbrida de Corrida e Auditoria Detalhada (Nota Fiscal).
  */
 
 window.GymView = {
 
     containerId: null,
     activeGymTab: 'gym-routines-section', // Aba padrão (Treinos)
+    runTimerInterval: null, // Intervalo local para atualização visual do timer de corrida
 
     /**
      * Inicializa a View, vincula ao container e configura navegação interna.
@@ -16,7 +17,32 @@ window.GymView = {
     init: function(containerId) {
         this.containerId = containerId;
         this._setupInternalNav();
-        console.log("[GymView] Interface V57 inicializada.");
+        this._injectOathModal(); // V5.9: Garante que o modal de juramento exista
+        console.log("[GymView] Interface V8.0 (Receipt Renderer) inicializada.");
+    },
+
+    /**
+     * V5.9: Injeção do Modal de Juramento (caso não exista no HTML base)
+     */
+    _injectOathModal: function() {
+        if (document.getElementById('modal-gym-oath')) return;
+        const div = document.createElement('div');
+        div.id = 'modal-gym-oath';
+        div.className = 'modal-overlay hidden';
+        div.style.zIndex = '2500'; // Garante topo
+        div.innerHTML = `
+            <div class="modal-content oath-content">
+                <span class="oath-icon">🛡️</span>
+                <div class="oath-question">
+                    Você jura solenemente que deu <strong>100% de si</strong> e nenhuma grama a menos nesta série final?
+                </div>
+                <div class="oath-buttons">
+                    <button id="btn-oath-yes" class="btn-oath-yes">SIM, EU JURO!</button>
+                    <button id="btn-oath-no" class="btn-oath-no">Não foi 100%</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(div);
     },
 
     /**
@@ -61,6 +87,9 @@ window.GymView = {
      * Decide o que mostrar com base no estado atual (Treino Ativo, Home ou Histórico).
      */
     render: function() {
+        // Limpa intervalo anterior de corrida para não duplicar
+        if (this.runTimerInterval) clearInterval(this.runTimerInterval);
+
         const container = document.getElementById(this.containerId);
         if (!container) return;
 
@@ -77,7 +106,6 @@ window.GymView = {
         }
         
         // Sincroniza o Widget do Auditor em MODO SILENCIOSO (autoShow = false)
-        // Isso atualiza os dados se o widget já estiver aberto, mas não força a abertura.
         this.updateAuditorWithGym(false);
     },
 
@@ -86,6 +114,18 @@ window.GymView = {
     // =========================================
 
     _renderHome: function(container) {
+        // V5.9: Seletor de Fase (Biological Justice)
+        const currentPhase = (window.GlobalApp.data.gym.settings && window.GlobalApp.data.gym.settings.currentPhase) || 'main';
+        
+        const phaseContainer = document.createElement('div');
+        phaseContainer.className = 'phase-selector-container';
+        phaseContainer.innerHTML = `
+            <button class="phase-btn phase-cut ${currentPhase === 'cut' ? 'active' : ''}" onclick="window.GymController.setGymPhase('cut')">✂️ Cut (1.5x)</button>
+            <button class="phase-btn phase-main ${currentPhase === 'main' ? 'active' : ''}" onclick="window.GymController.setGymPhase('main')">⚖️ Main (1.2x)</button>
+            <button class="phase-btn phase-bulk ${currentPhase === 'bulk' ? 'active' : ''}" onclick="window.GymController.setGymPhase('bulk')">🦍 Bulk (1.0x)</button>
+        `;
+        container.appendChild(phaseContainer);
+
         // Cabeçalho com botão de Criar Nova Rotina
         const header = document.createElement('div');
         header.className = 'gym-screen-header';
@@ -202,6 +242,147 @@ window.GymView = {
 
         // Renderiza cada exercício
         session.exercises.forEach((ex, exIndex) => {
+            
+            // --- INTERFACE HÍBRIDA PARA CORRIDA (V6.0: DASHBOARD + HIT) ---
+            if (ex.name === 'Corrida') {
+                const card = document.createElement('div');
+                card.className = 'session-exercise-card';
+                
+                // Header Normal
+                card.innerHTML = `
+                    <div class="session-exercise-header">
+                        <span class="session-exercise-name">🏃 ${ex.name} (Híbrido)</span>
+                        <button class="btn-ex-stats" onclick="window.GymView.showExerciseChart('${ex.id}')">📊</button>
+                    </div>
+                `;
+
+                // 1. DASHBOARD DE CORRIDA (Parte Superior)
+                const dashboard = document.createElement('div');
+                dashboard.className = 'run-dashboard-container';
+
+                // Dados
+                const pr = window.GymModel.getRunningPR();
+                const dist = ex.runDistance || 0;
+                
+                // Timer Logic Calculation
+                let initialTimeMs = ex.runElapsedTime || 0;
+                if (ex.isRunning && ex.runStartTime) {
+                    initialTimeMs += (Date.now() - ex.runStartTime);
+                }
+                const timeStr = this._formatTime(Math.floor(initialTimeMs / 1000));
+
+                // Botão de definir PR se for 0
+                const prBtnHTML = (pr === 0) 
+                    ? `<button class="btn-set-pr" onclick="window.GymController.promptSetPR()">Definir PR Inicial</button>` 
+                    : `<span class="run-stat-value pr">${pr.toFixed(2)}km</span>`;
+
+                const toggleIcon = ex.isRunning ? '⏸️' : '▶️';
+                const toggleClass = ex.isRunning ? 'btn-run-pause' : 'btn-run-play';
+
+                dashboard.innerHTML = `
+                    <div class="run-dashboard-top">
+                        <span class="run-stat-label">RECORD PESSOAL (PR)</span>
+                        ${pr === 0 ? prBtnHTML : `<div style="text-align:right">${prBtnHTML}</div>`}
+                    </div>
+
+                    <div id="run-timer-${exIndex}" class="run-timer-display">${timeStr}</div>
+
+                    <div class="run-timer-controls">
+                        <button class="${toggleClass}" onclick="window.GymController.toggleRunTimer(${exIndex})">${toggleIcon}</button>
+                    </div>
+
+                    <div class="run-stats-grid">
+                        <div class="run-stat-box">
+                            <span class="run-stat-label">DISTÂNCIA ATUAL</span>
+                            <span class="run-stat-value">${dist.toFixed(2)}km</span>
+                        </div>
+                        <div class="run-stat-box">
+                            <span class="run-stat-label">META XP</span>
+                            <span class="run-stat-value" style="color:var(--gym-accent)">Exponencial</span>
+                        </div>
+                    </div>
+
+                    <div class="run-controls-grid">
+                        <button class="btn-dist-shortcut" onclick="window.GymController.addRunShortcut(${exIndex}, 0.01)">+10m</button>
+                        <button class="btn-dist-shortcut" onclick="window.GymController.addRunShortcut(${exIndex}, 0.1)">+100m</button>
+                        <button class="btn-dist-shortcut" onclick="window.GymController.addRunShortcut(${exIndex}, 0.5)">+500m</button>
+                        <button class="btn-dist-shortcut" onclick="window.GymController.addRunShortcut(${exIndex}, 1.0)">+1km</button>
+                    </div>
+
+                    <div class="run-manual-input-container">
+                        <input type="number" id="run-manual-km-${exIndex}" class="run-manual-km-input" placeholder="KM Manual (Total)">
+                        <button class="btn-add-km-manual" onclick="window.GymController.addRunManual(${exIndex})">DEFINIR</button>
+                    </div>
+                `;
+
+                card.appendChild(dashboard);
+
+                // 2. INTERFACE HIT (Parte Inferior - Restaurada)
+                const runContainer = document.createElement('div');
+                runContainer.className = 'run-interface-container';
+
+                // Botão Mestre HIT
+                const hitBtn = document.createElement('button');
+                hitBtn.className = 'hit-master-btn';
+                hitBtn.innerHTML = '⚡ INTERVALOS DE HIT';
+                hitBtn.onclick = () => window.GymController.addHitInterval(exIndex);
+                runContainer.appendChild(hitBtn);
+
+                // Renderiza intervalos (Sets de corrida HIT)
+                if (ex.sets && ex.sets.length > 0) {
+                    ex.sets.forEach((set, setIndex) => {
+                        const row = document.createElement('div');
+                        row.className = 'hit-time-row';
+
+                        // Input Manual (Time em segundos)
+                        const input = document.createElement('input');
+                        input.type = 'number';
+                        input.id = `hit-input-${exIndex}-${setIndex}`;
+                        input.className = 'hit-manual-input';
+                        input.value = set.val1 || 0; 
+                        input.placeholder = '0s';
+                        input.onchange = () => window.GymController.updateHitTime(exIndex, setIndex, 0);
+
+                        // Grid de Atalhos
+                        const shortcutsDiv = document.createElement('div');
+                        shortcutsDiv.className = 'hit-shortcuts-grid';
+                        
+                        const times = [10, 30, 60, 300];
+                        const labels = ['+10s', '+30s', '+1m', '+5m'];
+
+                        times.forEach((t, i) => {
+                            const btn = document.createElement('button');
+                            btn.className = 'hit-shortcut-btn';
+                            btn.textContent = labels[i];
+                            btn.onclick = () => window.GymController.updateHitTime(exIndex, setIndex, t);
+                            shortcutsDiv.appendChild(btn);
+                        });
+
+                        // Botão Remover Linha
+                        const delBtn = document.createElement('button');
+                        delBtn.className = 'btn-remove-hit';
+                        delBtn.innerHTML = '×';
+                        delBtn.onclick = () => window.GymController.removeHitInterval(exIndex, setIndex);
+
+                        row.appendChild(input);
+                        row.appendChild(shortcutsDiv);
+                        row.appendChild(delBtn);
+                        runContainer.appendChild(row);
+                    });
+                }
+
+                card.appendChild(runContainer);
+                container.appendChild(card);
+
+                // Lógica de Atualização Visual do Timer Específico
+                if (ex.isRunning) {
+                    this._activateRunTimerVisual(exIndex, ex.runStartTime, ex.runElapsedTime);
+                }
+
+                return; // Pula renderização padrão
+            }
+            // --- FIM INTERFACE HÍBRIDA CORRIDA ---
+
             const card = document.createElement('div');
             card.className = 'session-exercise-card';
             
@@ -301,6 +482,36 @@ window.GymView = {
     },
 
     // =========================================
+    // AUXILIARES DE CORRIDA (V6.0)
+    // =========================================
+
+    _formatTime: function(seconds) {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        
+        // Se tiver hora, mostra HH:MM:SS, senão MM:SS
+        if (h > 0) {
+            return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        }
+        return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    },
+
+    _activateRunTimerVisual: function(exIndex, startTime, elapsedBefore) {
+        // Se já existe um intervalo rodando, limpa
+        if (this.runTimerInterval) clearInterval(this.runTimerInterval);
+
+        const el = document.getElementById(`run-timer-${exIndex}`);
+        if (!el) return;
+
+        this.runTimerInterval = setInterval(() => {
+            const now = Date.now();
+            const totalSeconds = Math.floor((elapsedBefore + (now - startTime)) / 1000);
+            el.textContent = this._formatTime(totalSeconds);
+        }, 1000);
+    },
+
+    // =========================================
     // 4. HISTÓRICO & AUDITORIA
     // =========================================
 
@@ -317,12 +528,16 @@ window.GymView = {
             rowsHTML = '<tr><td colspan="5" style="text-align:center; padding:40px; opacity:0.5;">Sem logs registrados.</td></tr>';
         } else {
             logs.forEach(log => {
+                // Se tiver math (receipt), pode mostrar ícone ou tooltip
+                const mathTip = log.math ? 'title="Ver Nota Fiscal"' : '';
+                const mathIcon = log.math ? ' 🧾' : '';
+                
                 rowsHTML += `
                     <tr>
                         <td style="font-size:0.75rem; color:var(--gym-text-sub);">${log.date}<br>${new Date(log.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</td>
                         <td><strong>${log.exerciseName}</strong></td>
                         <td style="font-size:0.8rem;">${log.detail}</td>
-                        <td class="gym-log-xp">+${log.xp} XP</td>
+                        <td class="gym-log-xp" ${mathTip}>+${log.xp} XP${mathIcon}</td>
                         <td><button class="btn-undo-gym" onclick="window.GymController.undoLog('${log.id}')">Desfazer</button></td>
                     </tr>
                 `;
@@ -341,8 +556,7 @@ window.GymView = {
     },
 
     /**
-     * Atualiza o Widget Flutuante do Auditor com o total de XP de hoje.
-     * @param {boolean} autoShow - Se true, força o widget a aparecer. Se false, apenas atualiza valores.
+     * Atualiza o Widget Flutuante do Auditor com o total de XP de hoje e o RECEIPT do último ganho.
      */
     updateAuditorWithGym: function(autoShow = true) {
         const auditWidget = document.getElementById('xp-audit-widget');
@@ -351,27 +565,58 @@ window.GymView = {
         const logs = window.GlobalApp.data.gym.xpLogs || [];
         const todayStr = window.GlobalApp.formatDate(new Date());
 
-        // Soma todo o XP gerado pela academia hoje (Sets + Bonus Finish)
-        const totalXP = logs
-            .filter(l => l.date === todayStr)
-            .reduce((acc, curr) => acc + (curr.xp || 0), 0);
+        // Soma todo o XP gerado pela academia hoje
+        const todayLogs = logs.filter(l => l.date === todayStr);
+        const totalXP = todayLogs.reduce((acc, curr) => acc + (curr.xp || 0), 0);
+
+        // Pega o último log para mostrar a Nota Fiscal
+        const latestLog = todayLogs.length > 0 ? todayLogs[0] : null;
 
         let gymRow = auditWidget.querySelector('.audit-row.gym-info');
         if (!gymRow) {
             gymRow = document.createElement('div');
             gymRow.className = 'audit-row gym-info';
+            // Permite crescimento vertical para a nota fiscal
+            gymRow.style.flexDirection = 'column'; 
             auditWidget.appendChild(gymRow);
         }
         
         if (totalXP > 0) {
             gymRow.style.display = 'flex';
-            gymRow.innerHTML = `<span>🏋️ Academia:</span> <span>+${totalXP} XP</span>`;
             
-            // Só remove a classe 'hidden' se for uma interação ativa (autoShow = true)
-            // Se for carregamento de página, respeita o estado atual (se estiver fechado, continua fechado)
-            if (autoShow) {
-                auditWidget.classList.remove('hidden');
+            // Header do Total Diário (Fica acima da nota)
+            let html = `<div style="display:flex; justify-content:space-between; width:100%; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:5px; margin-bottom:5px;"><span>🏋️ Total Hoje:</span> <span style="color:var(--gym-gold)">+${totalXP.toFixed(1)} XP</span></div>`;
+            
+            // Renderização da Nota Fiscal (Receipt Object) - V8.0
+            if (latestLog && typeof latestLog.math === 'object' && latestLog.math !== null) {
+                const r = latestLog.math;
+                
+                html += `<div style="font-family:monospace; font-size:0.75rem; color:#ccc; background:rgba(0,0,0,0.3); padding:5px; border-radius:4px;">`;
+                html += `<div style="text-align:center; font-weight:bold; margin-bottom:5px; border-bottom:1px dashed #555; padding-bottom:3px;">🧾 NOTA FISCAL DE XP: ${r.title}</div>`;
+                
+                if (r.sections) {
+                    r.sections.forEach(sec => {
+                        html += `<div style="margin-top:4px; color:#888; font-size:0.65rem; border-bottom:1px dotted #444;">${sec.title}</div>`;
+                        if (sec.rows) {
+                            sec.rows.forEach(row => {
+                                if (row.isSub) {
+                                    html += `<div style="padding-left:10px; color:#666; font-style:italic;">↳ ${row.label} ${row.value}</div>`;
+                                } else {
+                                    html += `<div style="display:flex; justify-content:space-between;"><span>• ${row.label}</span> <span>${row.value}</span></div>`;
+                                }
+                            });
+                        }
+                    });
+                }
+                
+                html += `<div style="margin-top:5px; border-top:1px dashed #555; padding-top:3px; display:flex; justify-content:space-between; font-weight:bold; color:var(--gym-success);"><span>TOTAL LÍQUIDO:</span> <span>${r.total} XP</span></div>`;
+                html += `</div>`;
+            } else if (latestLog && typeof latestLog.math === 'string') {
+                // Fallback para logs antigos (String)
+                html += `<div style="font-size:0.7rem; color:#aaa; margin-top:2px; text-align:right;">${latestLog.math} = <strong>${latestLog.xp}</strong></div>`;
             }
+
+            gymRow.innerHTML = html;
         } else {
             gymRow.style.display = 'none';
         }
