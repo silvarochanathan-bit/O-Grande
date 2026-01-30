@@ -26,14 +26,9 @@ window.HabitView = {
 
     renderAuditWidget: function() {
         let el = document.getElementById('xp-audit-widget');
-        if (!el) {
-            el = document.createElement('div');
-            el.id = 'xp-audit-widget';
-            el.style.display = 'none'; 
-            document.body.appendChild(el);
-        }
+        // A criação dinâmica foi removida. O widget reside estaticamente no index.html.
 
-        if (!el.querySelector('#audit-content')) {
+        if (el && !el.querySelector('#audit-content')) {
             el.innerHTML = `
                 <h4>🧮 NOTA FISCAL DE XP</h4>
                 <div id="audit-content">
