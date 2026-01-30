@@ -17,6 +17,8 @@
         body { visibility: visible; }
         /* Oculta o botão de voltar quando estiver no Hub */
         body[data-current-app="hub"] .btn-back-hub { display: none; }
+        /* Oculta o botão de auditoria quando estiver no Hub */
+        body[data-current-app="hub"] #btn-audit-toggle { display: none; }
     </style>
 </head>
 <body data-current-app="hub">
@@ -30,7 +32,6 @@
             <div id="xp-bar-fill" class="xp-bar-fill" style="width: 0%;"></div>
             <span id="xp-text">0 / 100 XP</span>
         </div>
-        <div id="xp-audit-widget" class="hidden"></div>
     </header>
 
     <main id="app-content">
@@ -214,6 +215,12 @@
     </main>
 
     <button class="btn-back-hub" onclick="window.GlobalApp.navigate('hub')" title="Voltar ao Hub">🏠</button>
+    <button id="btn-audit-toggle" class="btn-back-hub" style="left: 80px;" title="Nota Fiscal (Auditoria)">🧾</button>
+
+    <div id="xp-audit-widget" class="hidden">
+        <h4>🧮 NOTA FISCAL DE XP</h4>
+        <div id="audit-content"></div>
+    </div>
 
     <div id="modal-slot-machine" class="modal-overlay hidden">
         <div class="slot-machine-container">
