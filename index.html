@@ -11,7 +11,8 @@
     <link rel="stylesheet" href="tasks.css?v=5.7">
     <link rel="stylesheet" href="chests.css?v=5.7">
     <link rel="stylesheet" href="sounds.css?v=5.7">
-    <link rel="stylesheet" href="gym.css?v=5.7"> 
+    <link rel="stylesheet" href="gym.css?v=5.7">
+    <link rel="stylesheet" href="diet.css?v=6.0">
 
     <style>
         body { visibility: visible; }
@@ -194,6 +195,13 @@
                 <button class="gym-nav-btn" data-gym-target="gym-history-section">Histórico de XP</button>
             </nav>
             <div class="app-internal-container">
+                <div class="section-header" style="justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <h2>Academia</h2>
+                        <div class="streak-display" id="gym-streak-display">🔥 <span id="gym-streak-val">0</span></div>
+                    </div>
+                    <button class="secondary-btn" id="btn-gym-settings">⚙️ Config</button>
+                </div>
                 <div id="gym-container"></div>
             </div>
         </div>
@@ -202,17 +210,38 @@
             <div class="app-internal-container">
                 <div class="section-header">
                     <h2>Nutrição & Dieta</h2>
-                    <div class="water-tracker-mini">
-                        <span>💧 Água Hoje: <strong id="diet-water-display">0ml</strong></span>
+                    <div style="display:flex; gap:15px; align-items:center;">
+                        <div class="streak-display" id="diet-streak-display">🔥 <span id="diet-streak-val">0</span></div>
+                        <div class="water-tracker-mini">
+                            <span>💧 Água Hoje: <strong id="diet-water-display">0ml</strong></span>
+                        </div>
                     </div>
                 </div>
 
                 <div id="diet-container">
-                    <div style="text-align:center; padding:40px; color:#666; border:1px dashed #444; border-radius:8px;">
-                        <h3>🚧 Módulo em Construção</h3>
-                        <p>Controle de refeições, calorias e hidratação.</p>
-                        <p style="margin-top:10px; font-size:0.8rem; color:#00e676;">Manter a dieta gera XP constante.</p>
+                    <div class="diet-controls" style="margin-bottom: 15px; display: flex; gap: 10px; justify-content: flex-end;">
+                        <button class="secondary-btn" id="btn-diet-history">📜 Histórico</button>
+                        <button class="secondary-btn" id="btn-diet-settings">⚙️ Configurações</button>
+                        <button class="secondary-btn" id="btn-diet-food-db">🍎 Meus Alimentos</button>
                     </div>
+
+                    <div class="diet-card" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                        <h3 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1rem;">Evolução de Peso</h3>
+                        <div id="diet-weight-chart" style="height: 150px; width: 100%; position: relative;">
+                            </div>
+                        <div id="diet-weight-progress" style="text-align: center; font-size: 0.9rem; color: var(--text-secondary); margin-top: 10px;">
+                            Carregando dados...
+                        </div>
+                    </div>
+
+                    <div class="diet-card" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1rem;">Meta Diária</h3>
+                        <div id="diet-daily-summary">
+                            </div>
+                    </div>
+
+                    <div id="diet-meals-list" style="display: flex; flex-direction: column; gap: 15px;">
+                        </div>
                 </div>
             </div>
         </div>
@@ -244,16 +273,13 @@
             <h3>Configurar Hábito</h3>
             <form id="form-habit">
                 <input type="hidden" id="habit-id">
-                
                 <label>Nome do Hábito</label>
                 <input type="text" id="habit-name" placeholder="Ex: Meditação" required>
-                
                 <div class="importance-selector">
                     <label><input type="radio" name="importance" value="1" checked> Comum</label>
                     <label><input type="radio" name="importance" value="1.5"> Importante</label>
                     <label><input type="radio" name="importance" value="2"> Crítico</label>
                 </div>
-
                 <label>Frequência Semanal</label>
                 <div class="days-selector">
                     <label><input type="checkbox" value="0"> D</label>
@@ -264,7 +290,6 @@
                     <label><input type="checkbox" value="5"> S</label>
                     <label><input type="checkbox" value="6"> S</label>
                 </div>
-
                 <div class="habit-type-row" style="display:flex; gap:10px;">
                     <div style="flex:1;">
                         <label>Tipo de Registro</label>
@@ -280,7 +305,6 @@
                         <input type="number" id="habit-target-count" value="1" min="1">
                     </div>
                 </div>
-
                 <div class="emotional-factor-wrapper">
                     <label class="checkbox-label">
                         <input type="checkbox" id="habit-emotional-active"> Fator Emocional (Resiliência)
@@ -290,19 +314,16 @@
                         <span class="emotional-value-display">Nível 1</span>
                     </div>
                 </div>
-
                 <div class="abstinence-wrapper">
                     <label class="checkbox-label">
                         <input type="checkbox" id="habit-abstinence-active"> Modo Abstinência
                     </label>
                 </div>
-
                 <div class="conduct-wrapper">
                     <label class="checkbox-label">
                         <input type="checkbox" id="habit-conduct-active"> Trilhas de Conduta (Blocos)
                     </label>
                 </div>
-
                 <div class="modal-actions">
                     <button type="button" id="btn-cancel-habit" class="secondary-btn">Descartar</button>
                     <button type="submit" class="primary-btn">Salvar Alterações</button>
@@ -419,22 +440,150 @@
     <div id="modal-gym-set-type" class="modal-overlay hidden">
         <div class="modal-content" style="text-align: center;">
             <h3 class="gym-modal-title">Tipo de Série</h3>
-            
             <div style="display: flex; gap: 15px; justify-content: center; margin-bottom: 20px;">
                 <button type="button" id="btn-select-warmup" class="action-btn" 
                         style="padding: 20px; font-size: 1.2rem; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 120px; background: #333; border: 1px solid #444;">
                     <span style="font-size: 2rem;">🔥</span>
                     Aquecimento
                 </button>
-                
                 <button type="button" id="btn-select-valid" class="action-btn" 
                         style="padding: 20px; font-size: 1.2rem; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 120px; background: var(--gym-accent); color: white; border: none;">
                     <span style="font-size: 2rem;">💪</span>
                     Válida
                 </button>
             </div>
-
             <button type="button" id="btn-cancel-set-type" class="secondary-btn" style="width: 100%;">Cancelar</button>
+        </div>
+    </div>
+
+    <div id="modal-gym-settings" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="gym-modal-title">Configurações Academia</h3>
+            <form id="form-gym-settings">
+                <div class="gym-form-group">
+                    <label>Dia do Ciclo Atual (1-4)</label>
+                    <select id="gym-cycle-day" class="gym-form-input">
+                        <option value="1">Dia 1 - Treino A</option>
+                        <option value="2">Dia 2 - Treino B</option>
+                        <option value="3">Dia 3 - Treino C</option>
+                        <option value="4">Dia 4 - Descanso 😴</option>
+                    </select>
+                    <p style="font-size:0.8rem; color:#888; margin-top:5px;">O ciclo padrão é 3 dias de treino e 1 de descanso.</p>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btn-cancel-gym-settings" class="secondary-btn">Cancelar</button>
+                    <button type="submit" class="primary-btn">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-diet-settings" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="gym-modal-title">Configurações de Dieta</h3>
+            <form id="form-diet-settings">
+                <div class="gym-form-group">
+                    <label>Fase Atual</label>
+                    <select id="diet-phase" class="gym-form-input">
+                        <option value="cut">Cutting (Perda de Peso)</option>
+                        <option value="main">Manutenção</option>
+                        <option value="bulk">Bulking (Ganho de Massa)</option>
+                    </select>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+                    <div class="gym-form-group">
+                        <label>P. Inicial</label>
+                        <input type="number" id="diet-weight-start" class="gym-form-input" step="0.1">
+                    </div>
+                    <div class="gym-form-group">
+                        <label>P. Atual</label>
+                        <input type="number" id="diet-weight-current" class="gym-form-input" step="0.1">
+                    </div>
+                    <div class="gym-form-group">
+                        <label>P. Meta</label>
+                        <input type="number" id="diet-weight-goal" class="gym-form-input" step="0.1">
+                    </div>
+                </div>
+                <div class="gym-form-group">
+                    <label>Número de Refeições Diárias</label>
+                    <input type="number" id="diet-meals-count" class="gym-form-input" value="4" min="1" max="8">
+                </div>
+                
+                <h4 style="color:#fff; margin:15px 0 10px 0;">Metas Totais Diárias</h4>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="gym-form-group"><label>Calorias (Kcal)</label><input type="number" id="diet-target-kcal" class="gym-form-input" step="0.1"></div>
+                    <div class="gym-form-group"><label>Proteína (g)</label><input type="number" id="diet-target-prot" class="gym-form-input" step="0.1"></div>
+                    <div class="gym-form-group"><label>Carbo (g)</label><input type="number" id="diet-target-carb" class="gym-form-input" step="0.1"></div>
+                </div>
+
+                <h4 style="color:#fff; margin:15px 0 10px 0;">Metas por Refeição</h4>
+                <div id="diet-meal-targets-config" style="max-height: 200px; overflow-y: auto; margin-bottom: 15px; padding-right: 5px;"></div>
+
+                <div class="modal-actions">
+                    <button type="button" id="btn-cancel-diet-settings" class="secondary-btn">Cancelar</button>
+                    <button type="submit" class="primary-btn">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-diet-food-db" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="gym-modal-title">Meus Alimentos (100g)</h3>
+            <div id="diet-foods-list" style="max-height: 200px; overflow-y: auto; margin-bottom: 15px; border: 1px solid #333; padding: 5px; border-radius: 4px;"></div>
+            
+            <form id="form-diet-add-food" style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                <label style="display:block; color:#aaa; font-size:0.8rem; margin-bottom:5px;">Novo Alimento</label>
+                <input type="text" id="new-food-name" class="gym-form-input" placeholder="Ex: Frango Grelhado" style="margin-bottom: 8px;">
+                <div style="display:flex; gap:5px;">
+                    <input type="number" id="new-food-kcal" class="gym-form-input" placeholder="Kcal" step="0.1">
+                    <input type="number" id="new-food-p" class="gym-form-input" placeholder="P" step="0.1">
+                    <input type="number" id="new-food-c" class="gym-form-input" placeholder="C" step="0.1">
+                </div>
+                <button type="submit" class="action-btn" style="width:100%; margin-top:10px;">+ Adicionar</button>
+            </form>
+            
+            <div class="modal-actions">
+                <button type="button" id="btn-close-food-db" class="secondary-btn" style="width:100%">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-diet-log" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="gym-modal-title">Registrar Alimento</h3>
+            <form id="form-diet-log">
+                <input type="hidden" id="log-target-meal-index">
+                
+                <div class="gym-form-group">
+                    <label>Alimento</label>
+                    <select id="log-food-select" class="gym-form-input"></select>
+                </div>
+                
+                <div class="gym-form-group">
+                    <label>Quantidade (gramas)</label>
+                    <input type="number" id="log-food-grams" class="gym-form-input" value="100" step="0.1">
+                </div>
+
+                <div id="log-preview" style="text-align: center; font-size: 0.9rem; color: #aaa; margin-bottom: 15px; background: #222; padding: 10px; border-radius: 6px;">
+                    Prévia: 0 Kcal | P: 0g | C: 0g
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" id="btn-cancel-diet-log" class="secondary-btn">Cancelar</button>
+                    <button type="submit" class="primary-btn">Registrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-diet-history" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="gym-modal-title">Histórico de XP (Dieta)</h3>
+            <div id="diet-history-list" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 5px;"></div>
+            <div class="modal-actions">
+                <button type="button" id="btn-close-diet-history" class="secondary-btn" style="width:100%">Fechar</button>
+            </div>
         </div>
     </div>
 
@@ -449,7 +598,7 @@
     <script src="gym-model.js?v=5.7"></script>
     <script src="gym-view.js?v=5.7"></script>
     <script src="gym-controller.js?v=5.7"></script>
-    <script src="diet.js?v=5.7"></script>
+    <script src="diet.js?v=6.0"></script>
 
 </body>
 </html>
