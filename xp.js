@@ -1,7 +1,7 @@
 /**
  * XP.JS
  * Responsável pela lógica matemática de pontos, ORQUESTRAÇÃO AUDIOVISUAL e LOGS.
- * VERSÃO: V22 - PRECISÃO DECIMAL (FLOAT)
+ * VERSÃO: V23 - SAFETY LOCK & DECIMAL PRECISION
  */
 
 window.XPManager = {
@@ -10,7 +10,7 @@ window.XPManager = {
     currentViewCache: [],
 
     init: function() {
-        console.log("Site C: XPManager V22 (Decimal) Carregado");
+        console.log("Site C: XPManager V23 (Safety Lock) Carregado");
         document.addEventListener('SiteC_DataReady', () => {
             this.sanitizeHistory();
             this.injectManualControls();
@@ -102,6 +102,9 @@ window.XPManager = {
      * Função Principal de Ganho de XP
      */
     gainXP: async function(baseAmount, source, options = {}) {
+        // TRAVA DE SEGURANÇA (DIET LOCKDOWN)
+        if (window.GlobalApp.data.xp && window.GlobalApp.data.xp.blocked) return;
+
         // Garante que a entrada seja tratada como float
         let currentTotal = parseFloat(baseAmount);
         let bonusVal = 0;
