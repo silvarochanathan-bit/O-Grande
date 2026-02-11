@@ -1,9 +1,9 @@
 /**
  * HABITS-MODEL.JS
  * Lógica de Dados e Regras de Negócio para Hábitos.
- * VERSÃO: V5.9 - PASSIVE RESET MODEL
- * Alterações: O reset diário agora é um método passivo chamado pelo GlobalApp.
- * Removeu-se a verificação interna de data para evitar conflitos (Single Source of Truth).
+ * VERSÃO: V5.9.1 - GAME DATE COMPATIBILITY
+ * Alterações: Ajuste na verificação de agendamento para usar GlobalApp.getGameDate(),
+ * permitindo que o dia só vire logicamente após 12:00 ou comando manual.
  */
 
 window.HabitModel = {
@@ -39,8 +39,13 @@ window.HabitModel = {
             return !!habit.opportunityToday; // Só exibe se foi desbloqueado
         }
 
-        const today = new Date();
-        const dayOfWeek = today.getDay(); // 0=Dom, 1=Seg...
+        // --- ALTERAÇÃO V6.2: USO DE DATA DO JOGO (GAME DATE) ---
+        // Substitui new Date() para respeitar a regra das 12h
+        const gameDateStr = window.GlobalApp.getGameDate(); 
+        const parts = gameDateStr.split('-');
+        const gameDateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+        
+        const dayOfWeek = gameDateObj.getDay(); // 0=Dom, 1=Seg...
         
         // 2. Frequência Semanal (Array de dias)
         if (habit.frequencyType === 'weekly') {
@@ -68,10 +73,14 @@ window.HabitModel = {
 
         const created = new Date(habit.createdAt);
         created.setHours(0,0,0,0);
-        const today = new Date();
-        today.setHours(0,0,0,0);
         
-        const diffTime = Math.abs(today - created);
+        // --- ALTERAÇÃO V6.2: USO DE DATA DO JOGO ---
+        const gameDateStr = window.GlobalApp.getGameDate();
+        const parts = gameDateStr.split('-');
+        const currentGameDate = new Date(parts[0], parts[1] - 1, parts[2]);
+        currentGameDate.setHours(0,0,0,0);
+        
+        const diffTime = Math.abs(currentGameDate - created);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
         
         const offset = habit.patternOffset || 0;
@@ -104,7 +113,7 @@ window.HabitModel = {
     },
 
     // --- 3. RESET DIÁRIO (PASSIVO - V5.9) ---
-    // Chamado EXCLUSIVAMENTE pelo GlobalApp.processDailyRollover()
+    // Chamado EXCLUSIVAMENTE pelo GlobalApp.checkForDailyReset()
     resetDailyState: function() {
         console.log("[HabitModel] Executando reset passivo de estados...");
         
