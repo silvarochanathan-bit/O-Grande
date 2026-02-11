@@ -240,7 +240,7 @@ window.DietManager = {
         this.checkWeighInStatus();
 
         // 2. Calcula Totais de Hoje
-        const todayStr = window.GlobalApp.formatDate(new Date());
+        const todayStr = window.GlobalApp.getGameDate();
         const todayLog = window.GlobalApp.data.diet.logs[todayStr] || {};
         
         let total = { kcal: 0, p: 0, c: 0 };
@@ -386,7 +386,7 @@ window.DietManager = {
         if (inputEl) inputEl.value = newVal;
 
         // Atualiza Data da Última Pesagem
-        d.lastWeighInDate = window.GlobalApp.formatDate(new Date());
+        d.lastWeighInDate = window.GlobalApp.getGameDate();
 
         // 2. Lógica de Castigo e Desbloqueio
         if (isPunishment) {
@@ -424,7 +424,7 @@ window.DietManager = {
             
             const finalXP = Math.round(baseXP * phaseMult * tablePct * streakMult);
             
-            const todayStr = window.GlobalApp.formatDate(new Date());
+            const todayStr = window.GlobalApp.getGameDate();
 
             let receipt = null;
             if (finalXP > 0) {
@@ -669,7 +669,7 @@ window.DietManager = {
     // Nova Função: Registrar Refeição Completa (Commit)
     registerMeal: function(mealIndex) {
         const d = window.GlobalApp.data.diet;
-        const todayStr = window.GlobalApp.formatDate(new Date());
+        const todayStr = window.GlobalApp.getGameDate();
         
         // Garante estrutura
         if (!d.logs[todayStr]) d.logs[todayStr] = {};
@@ -762,7 +762,7 @@ window.DietManager = {
 
         const d = window.GlobalApp.data.diet;
         const settings = d.settings;
-        const todayStr = window.GlobalApp.formatDate(new Date());
+        const todayStr = window.GlobalApp.getGameDate();
         const todayLog = d.logs[todayStr] || {};
 
         // 1. Calcula Total do Dia
@@ -1079,7 +1079,7 @@ window.DietManager = {
         // === BIO-REACTOR: PESAGEM SEMANAL ===
         if (oldWeight !== newWeight || forceSave) {
             // Atualiza data da última pesagem
-            d.lastWeighInDate = window.GlobalApp.formatDate(new Date());
+            d.lastWeighInDate = window.GlobalApp.getGameDate();
 
             // Se for punição, desbloqueia XP mas não dá pontos
             if (isPunishment) {
@@ -1120,7 +1120,7 @@ window.DietManager = {
                 
                 const finalXP = Math.round(baseXP * phaseMult * tablePct * streakMult);
                 
-                const todayStr = window.GlobalApp.formatDate(new Date());
+                const todayStr = window.GlobalApp.getGameDate();
 
                 let receipt = null;
                 if (finalXP > 0) {
@@ -1335,7 +1335,7 @@ window.DietManager = {
             // f (fat) removed
         };
 
-        const todayStr = window.GlobalApp.formatDate(new Date());
+        const todayStr = window.GlobalApp.getGameDate();
         
         if (!window.GlobalApp.data.diet.logs[todayStr]) {
             window.GlobalApp.data.diet.logs[todayStr] = {};
@@ -1356,7 +1356,7 @@ window.DietManager = {
 
     removeFoodLog: function(mealIndex, foodIdx) {
         if (confirm('Remover este alimento da refeição?')) {
-            const todayStr = window.GlobalApp.formatDate(new Date());
+            const todayStr = window.GlobalApp.getGameDate();
             window.GlobalApp.data.diet.logs[todayStr][mealIndex].splice(foodIdx, 1);
             window.GlobalApp.saveData();
             this.render();
@@ -1369,7 +1369,7 @@ window.DietManager = {
 
         const d = window.GlobalApp.data.diet;
         const history = d.xpHistory || [];
-        const todayStr = window.GlobalApp.formatDate(new Date());
+        const todayStr = window.GlobalApp.getGameDate();
 
         // Filter today's logs
         const todayLogs = history.filter(h => h.date === todayStr);
