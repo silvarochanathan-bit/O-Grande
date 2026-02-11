@@ -1,16 +1,17 @@
 /**
  * GLOBAL.JS
  * Gerenciamento de estado, persistência e Roteamento do Super App.
- * VERSÃO: V5.8 - UNIFIED DAILY RESET ORCHESTRATOR
- * Alterações: Centralização da lógica de reset diário. O Global agora comanda
- * os resets de Hábitos e outros módulos para garantir sincronia.
+ * VERSÃO: V6.2 - GAME DAY LOGIC (NOCTURNAL MODE)
+ * Alterações: Introdução do conceito de "Dia do Jogo" vs "Dia Real".
+ * O dia só vira automaticamente após 12:00 (meio-dia). Antes disso, é necessário
+ * ação manual do usuário ("Virar o Dia") para consolidar os dados.
  */
 
 const STORAGE_KEY = 'SITE_C_MASTER_DATA';
 
 const DEFAULT_STATE = {
     // Estado Global (Compartilhado)
-    xp: { current: 0, total: 0, level: 1, history: [] },
+    xp: { current: 0, total: 0, level: 1, history: [], blocked: false },
     wallet: {
         daily: { current: 0, gainedToday: 0, max: 9 },
         weekend: { current: 0, max: 30 },
@@ -73,7 +74,8 @@ const DEFAULT_STATE = {
         lastActiveDate: null, 
         backupUrl: "" // Link do Google Drive
     },
-    lastLogin: null
+    lastLogin: null,
+    lastGameDate: null // Novo: Controla a data "lógica" do jogo
 };
 
 // --- SISTEMA DE MODAIS ---
@@ -141,18 +143,25 @@ window.GlobalApp = {
                 if (!this.data.meta) this.data.meta = {};
                 this.data.meta.lastActiveDate = todayStr;
                 this.data.lastLogin = todayStr;
+                this.data.lastGameDate = todayStr; // Inicializa lastGameDate
                 console.log("Site C: Novo save criado.");
+            }
+            
+            // Inicializa lastGameDate se não existir em saves antigos
+            if (!this.data.lastGameDate) {
+                this.data.lastGameDate = this.formatDate(new Date());
             }
             
             this.ensureIntegrity();
             this.isSafeToSave = true;
-            this.processDailyRollover();
+            this.checkForDailyReset(); // Substitui processDailyRollover pela nova função lógica
+            this.renderTurnDayButton(); // Injeta botão de virada manual
             
             // Listener de Visibilidade (Reset Automático Anti-Insônia)
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') {
                     console.log("Site C: Aba ativa novamente. Verificando virada do dia...");
-                    this.processDailyRollover();
+                    this.checkForDailyReset();
                 }
             });
 
@@ -237,18 +246,96 @@ window.GlobalApp = {
         window.scrollTo(0,0);
     },
 
-    // --- ORQUESTRADOR DE RESET DIÁRIO (V5.8) ---
-    processDailyRollover: function() {
-        if (!this.isSafeToSave) return; 
+    // =========================================================================
+    // LÓGICA DE TEMPO E RESET (GAME DAY)
+    // =========================================================================
+
+    /**
+     * Retorna a data "Lógica" do jogo.
+     * Se for antes de 12:00, e o usuário não virou o dia, retorna a data salva (Ontem).
+     * Se for depois de 12:00, força a data real (Hoje).
+     */
+    getGameDate: function() {
+        const now = new Date();
+        const realDateStr = this.formatDate(now);
+        const savedGameDate = this.data.lastGameDate || realDateStr;
+
+        // Se a data salva já é a real, estamos sincronizados
+        if (savedGameDate === realDateStr) return realDateStr;
+
+        const hour = now.getHours();
+
+        // Regra das 12:00 (Meio-dia)
+        if (hour < 12) {
+            // Ainda é "madrugada" do dia de jogo anterior
+            return savedGameDate;
+        } else {
+            // Passou do limite, o dia vira automaticamente (Castigo/Limite)
+            // Atualizamos o lastGameDate para não ficar inconsistente no próximo save
+            if (this.data.lastGameDate !== realDateStr) {
+                console.log("[GlobalApp] Auto-Turn: Passou de 12:00, virando dia automaticamente.");
+                this.data.lastGameDate = realDateStr;
+                this.saveData();
+            }
+            return realDateStr;
+        }
+    },
+
+    /**
+     * Ação manual do botão "Virar o Dia"
+     */
+    turnDayManual: function() {
+        if (!confirm("Encerrar o dia anterior e iniciar um novo dia agora?")) return;
+        
+        const realDateStr = this.formatDate(new Date());
+        this.data.lastGameDate = realDateStr;
+        this.saveData();
+        
+        // Recarrega para processar o reset limpo
+        window.location.reload();
+    },
+
+    /**
+     * Renderiza o botão diretamente no Body (Overlay) se estivermos no "Limbo"
+     */
+    renderTurnDayButton: function() {
+        // Remove botão antigo se houver
+        const oldBtn = document.getElementById('btn-turn-day');
+        if (oldBtn) oldBtn.remove();
 
         const now = new Date();
-        const todayStr = this.formatDate(now);
-        
-        // Usa lastActiveDate do meta como fonte de verdade, fallback para lastLogin
-        const lastDate = this.data.meta.lastActiveDate || this.data.lastLogin || todayStr;
+        const realDateStr = this.formatDate(now);
+        const savedGameDate = this.data.lastGameDate;
+        const currentHour = now.getHours();
 
-        if (lastDate !== todayStr) {
-            console.log(`[GlobalApp] 🌅 Virada de Dia Detectada: ${lastDate} -> ${todayStr}`);
+        // LOG DE SEGURANÇA / DIAGNÓSTICO
+        console.log(`[GlobalApp] TurnButton Check: Saved=${savedGameDate} vs Real=${realDateStr} | Hour=${currentHour}`);
+
+        // Só mostra se as datas diferem E for antes de meio dia (senão vira auto)
+        if (savedGameDate !== realDateStr && currentHour < 12) {
+            const btn = document.createElement('button');
+            btn.id = 'btn-turn-day';
+            btn.innerHTML = '🌙 Virar Dia';
+            // CSS definido no global.css com posição fixed
+            btn.onclick = () => this.turnDayManual();
+
+            // Injeta diretamente no Body para garantir visibilidade
+            document.body.appendChild(btn);
+        }
+    },
+
+    /**
+     * Orquestrador de Reset Diário
+     * Agora usa getGameDate() em vez de new Date() direto.
+     */
+    checkForDailyReset: function() {
+        if (!this.isSafeToSave) return;
+
+        const gameDate = this.getGameDate();
+        const lastLogin = this.data.lastLogin; // Usa lastLogin para verificar mudança efetiva
+
+        if (lastLogin !== gameDate) {
+            console.log(`[GlobalApp] Reset Diário Detectado: ${lastLogin} -> ${gameDate}`);
             
             // 1. Reset da Carteira (Slots e Consumo)
             this.data.wallet.daily.gainedToday = 0;
@@ -257,7 +344,12 @@ window.GlobalApp = {
             }
 
             // Lógica Carteira (Semanal vs Diário)
-            const dayOfWeek = now.getDay(); 
+            // Precisa parsear gameDate para saber o dia da semana
+            const parts = gameDate.split('-');
+            // new Date(y, m-1, d)
+            const dateObj = new Date(parts[0], parts[1]-1, parts[2]);
+            const dayOfWeek = dateObj.getDay(); 
+            
             if (dayOfWeek === 1) { // Segunda-feira
                 const needed = 2;
                 const available = this.data.wallet.weekend.current;
@@ -299,7 +391,7 @@ window.GlobalApp = {
             // HabitModel (Reset de estados diários e faixas)
             if (window.HabitModel && typeof window.HabitModel.resetDailyState === 'function') {
                 console.log("[GlobalApp] Chamando reset de Hábitos...");
-                window.HabitModel.resetDailyState();
+                window.HabitModel.resetDailyState(); // HabitModel deve estar preparado para ler a data correta
                 // Força renderização se o manager estiver ativo
                 if (window.HabitManager) window.HabitManager.render();
             }
@@ -310,8 +402,9 @@ window.GlobalApp = {
             }
 
             // 4. Atualiza Data de Controle e Salva
-            this.data.lastLogin = todayStr;
-            this.data.meta.lastActiveDate = todayStr;
+            this.data.lastLogin = gameDate;
+            this.data.meta.lastActiveDate = gameDate;
+            this.data.lastGameDate = gameDate; // Sincroniza
 
             this.saveData();
             console.log("[GlobalApp] Rollover concluído com sucesso.");
