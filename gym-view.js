@@ -18,6 +18,8 @@ window.GymView = {
         this.containerId = containerId;
         this._setupInternalNav();
         this._injectOathModal(); // V5.9: Garante que o modal de juramento exista
+        // INJEÇÃO V6.1: Modal de Tipo de Série (Se não existir)
+        this._injectSetTypeModal(); 
         console.log("[GymView] Interface V8.0 (Receipt Renderer) inicializada.");
     },
 
@@ -43,6 +45,45 @@ window.GymView = {
             </div>
         `;
         document.body.appendChild(div);
+    },
+
+    // INJEÇÃO V6.1: Garante que o modal de tipo de série existe no DOM
+    _injectSetTypeModal: function() {
+        if (document.getElementById('modal-gym-set-type')) return;
+        const div = document.createElement('div');
+        div.id = 'modal-gym-set-type';
+        div.className = 'modal-overlay hidden';
+        div.innerHTML = `
+            <div class="modal-content" style="max-width:300px; text-align:center;">
+                <h3>Tipo de Série</h3>
+                <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
+                    <button id="btn-select-warmup" class="action-btn" style="background:var(--gym-warmup); color:#000;">🔥 Aquecimento</button>
+                    <button id="btn-select-valid" class="action-btn" style="background:var(--gym-accent);">💪 Válida (Work Set)</button>
+                    <div style="border-top:1px solid #333; margin:10px 0;"></div>
+                    <button id="btn-delete-set-modal" class="action-btn" style="background:transparent; border:1px solid var(--gym-danger); color:var(--gym-danger);">🗑️ Deletar Série</button>
+                    <button id="btn-cancel-set-type" class="secondary-btn" style="margin-top:10px;">Cancelar</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(div);
+
+        // Vincula o evento do novo botão DELETE
+        // Nota: O Controller deve limpar currentSetEditing ao deletar
+        const delBtn = document.getElementById('btn-delete-set-modal');
+        if (delBtn) {
+            delBtn.onclick = () => {
+                if (window.GymController && window.GymController.currentSetEditing) {
+                    const { exIndex, setIndex } = window.GymController.currentSetEditing;
+                    // Chama a nova função do Controller
+                    window.GymController.deleteSet(exIndex, setIndex);
+                }
+            };
+        }
+    },
+
+    openSetTypeModal: function(currentType, exIndex, setIndex) {
+        // Exibe o modal injetado acima
+        this.toggleModal('modal-gym-set-type', true);
     },
 
     /**
@@ -98,7 +139,11 @@ window.GymView = {
 
         // Prioridade: Se há treino ativo, mostra a sessão.
         if (activeSession) {
-            this._renderSession(container, activeSession);
+            // Nota: O Controller deve chamar renderActiveSession com lastSession
+            // Se chamar render() puro, pode faltar o lastSession. 
+            // O fluxo ideal é via GymController.render().
+            // Se cair aqui direto, renderiza sem histórico.
+            this._renderSession(container, activeSession, null);
         } else if (this.activeGymTab === 'gym-routines-section') {
             this._renderHome(container);
         } else {
@@ -220,11 +265,22 @@ window.GymView = {
         });
     },
 
+    // Função pública para o Controller chamar com lastSession
+    renderActiveSession: function(session, lastSession) {
+        const container = document.getElementById(this.containerId);
+        if (!container) return;
+        container.innerHTML = '';
+        this._renderSession(container, session, lastSession);
+        
+        // Sincroniza o Auditor
+        this.updateAuditorWithGym(false);
+    },
+
     // =========================================
     // 3. SESSÃO ATIVA (LAYOUT V57 - 6 COLUNAS)
     // =========================================
 
-    _renderSession: function(container, session) {
+    _renderSession: function(container, session, lastSession) {
         // Sticky Header (Fixo no topo)
         const stickyHeader = document.createElement('div');
         stickyHeader.className = 'workout-sticky-header';
@@ -391,6 +447,39 @@ window.GymView = {
             if (ex.type && ex.type.includes('dur')) label2 = "TEMPO";
             if (ex.type && ex.type.includes('no_weight')) label1 = "PESO";
 
+            // Busca exercício correspondente no LastSession (se houver)
+            let lastEx = null;
+            if (lastSession && lastSession.exercises) {
+                // Compara pelo ID do exercício, não pela posição no array
+                lastEx = lastSession.exercises.find(le => le.id === ex.id);
+            }
+
+            // --- INJEÇÃO V6.2: NOTAS E METAS ---
+            const globalEx = window.GymModel.getExerciseById(ex.id) || {};
+            const noteText = globalEx.note || '';
+            const goalV1 = globalEx.goalV1 || '';
+            const goalV2 = globalEx.goalV2 || '';
+
+            const extraFieldsHTML = `
+                <div class="exercise-extra-fields" style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333;">
+                    <div style="margin-bottom: 10px;">
+                        <label style="font-size: 0.7rem; color: var(--gym-gold); font-weight: bold; display: block; margin-bottom: 5px;">📝 NOTAS DO EXERCÍCIO</label>
+                        <textarea id="note-${exIndex}" class="gym-input" style="width: 100%; height: 50px; resize: none; font-size: 0.8rem;" placeholder="Anote placas, ajustes da máquina..." onchange="window.GymController.updateExerciseNote('${ex.id}', this.value)">${noteText}</textarea>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.7rem; color: var(--gym-accent); font-weight: bold; display: block; margin-bottom: 5px;">🎯 META (${label1} x ${label2})</label>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <input type="text" id="goal-v1-${ex.id}" class="gym-input" style="flex: 1;" placeholder="${label1}" value="${goalV1}" onchange="window.GymController.updateExerciseGoal('${ex.id}', document.getElementById('goal-v1-${ex.id}').value, document.getElementById('goal-v2-${ex.id}').value)">
+                            <input type="text" id="goal-v2-${ex.id}" class="gym-input" style="flex: 1;" placeholder="${label2}" value="${goalV2}" onchange="window.GymController.updateExerciseGoal('${ex.id}', document.getElementById('goal-v1-${ex.id}').value, document.getElementById('goal-v2-${ex.id}').value)">
+                        </div>
+                        <div style="background: #222; border-radius: 10px; height: 10px; width: 100%; overflow: hidden; position: relative;">
+                            <div id="progress-bar-${exIndex}" style="background: linear-gradient(90deg, var(--gym-accent), var(--gym-success)); width: 0%; height: 100%; transition: width 0.3s;"></div>
+                        </div>
+                        <div id="progress-text-${exIndex}" style="font-size: 0.7rem; text-align: right; margin-top: 3px; color: var(--gym-text-sub);">0%</div>
+                    </div>
+                </div>
+            `;
+
             let setsHTML = '';
             
             // Loop de Séries
@@ -398,40 +487,70 @@ window.GymView = {
                 const checkedClass = set.done ? 'checked' : '';
 
                 // LÓGICA V57: Ícone e Cor baseados no estado (Aquecimento vs Válida)
-                // Se isWarmup == true, mostra Fogo Laranja. Se false, mostra Braço Azul.
                 const typeIcon = set.isWarmup ? '🔥' : '💪';
                 const typeClass = set.isWarmup ? 'is-warmup' : 'is-valid';
 
-                /* GRID V57 (6 Colunas): 
-                   1. Botão Tipo (Substitui número da série)
-                   2. Histórico Anterior (Last)
-                   3. Input 1 (Carga - Largo)
-                   4. Input 2 (Reps - Largo)
-                   5. Input Rest (Descanso)
-                   6. Check Button
-                */
+                // LÓGICA V6.1: Comparação de Carga (History Check) - SÓ TREINO ANTERIOR
+                let styleV1 = '';
+                let styleV2 = '';
+                let historyLabel = '-';
+
+                // Se houver histórico desse exercício e dessa série específica (índice)
+                if (lastEx && lastEx.sets && lastEx.sets[setIndex]) {
+                    const lastSet = lastEx.sets[setIndex];
+                    
+                    // Exibe o histórico na coluna LAST (ex: "50kg x 10")
+                    historyLabel = `${lastSet.val1} x ${lastSet.val2}`;
+
+                    // Comparação de Carga (Val1)
+                    const currentV1 = parseFloat(set.val1) || 0;
+                    const lastV1 = parseFloat(lastSet.val1) || 0;
+
+                    if (currentV1 > lastV1) {
+                        styleV1 = 'color:var(--gym-success); font-weight:bold;'; // Superou (Verde)
+                    } else if (currentV1 < lastV1) {
+                        styleV1 = 'color:var(--gym-danger);'; // Regrediu (Vermelho)
+                    }
+
+                    // Comparação de Reps (Val2) - Apenas se carga for igual ou maior
+                    if (currentV1 >= lastV1) {
+                        const currentV2 = parseFloat(set.val2) || 0;
+                        const lastV2 = parseFloat(lastSet.val2) || 0;
+                        
+                        if (currentV2 > lastV2) {
+                            styleV2 = 'color:var(--gym-success); font-weight:bold;';
+                        } else if (currentV1 === lastV1 && currentV2 < lastV2) {
+                            // Só pinta vermelho se carga for igual e reps caíram
+                            styleV2 = 'color:var(--gym-danger);';
+                        }
+                    }
+                }
+
+                /* GRID V57 (6 Colunas) */
                 setsHTML += `
                     <div class="set-row">
                         <div>
                             <button class="btn-set-type ${typeClass}" 
-                                    onclick="window.GymController.openSetTypeSelector(${exIndex}, ${setIndex})"
+                                    onclick="window.GymController.openSetTypeModal(${exIndex}, ${setIndex})"
                                     title="Alterar tipo de série">
                                 ${typeIcon}
                             </button>
                         </div>
                         
-                        <div class="set-prev" style="font-size:0.7rem; opacity:0.6;">Hist.</div> 
+                        <div class="set-prev" style="font-size:0.7rem; opacity:0.6; white-space:nowrap; overflow:hidden;">${historyLabel}</div> 
                         
                         <div>
-                            <input type="number" id="v1-${exIndex}-${setIndex}" class="gym-input" 
+                            <input type="text" id="v1-${exIndex}-${setIndex}" class="gym-input" 
                                    value="${set.val1}" placeholder="0" inputmode="decimal"
-                                   onchange="window.GymController.updateSetData(${exIndex}, ${setIndex})">
+                                   onchange="window.GymController.updateSetData(${exIndex}, ${setIndex})"
+                                   style="${styleV1}">
                         </div>
                         
                         <div>
-                            <input type="number" id="v2-${exIndex}-${setIndex}" class="gym-input" 
-                                   value="${set.val2}" placeholder="0" inputmode="numeric"
-                                   onchange="window.GymController.updateSetData(${exIndex}, ${setIndex})">
+                            <input type="text" id="v2-${exIndex}-${setIndex}" class="gym-input" 
+                                   value="${set.val2}" placeholder="0" inputmode="decimal"
+                                   onchange="window.GymController.updateSetData(${exIndex}, ${setIndex})"
+                                   style="${styleV2}">
                         </div>
                         
                         <div>
@@ -455,6 +574,7 @@ window.GymView = {
                     <span class="session-exercise-name">${ex.name}</span>
                     <button class="btn-ex-stats" onclick="window.GymView.showExerciseChart('${ex.id}')">📊</button>
                 </div>
+                ${extraFieldsHTML}
                 <div class="sets-grid">
                     <div class="sets-header">TIPO</div>
                     <div class="sets-header align-left">LAST</div>
@@ -467,6 +587,11 @@ window.GymView = {
                 </div>
             `;
             container.appendChild(card);
+            
+            // Atualiza barra de progresso inicial
+            if (this.updateExerciseProgress) {
+                this.updateExerciseProgress(exIndex, ex.id);
+            }
         });
 
         // Botão de Cancelamento no final
@@ -482,8 +607,51 @@ window.GymView = {
     },
 
     // =========================================
-    // AUXILIARES DE CORRIDA (V6.0)
+    // 3. AUXILIARES DE CORRIDA E METAS
     // =========================================
+
+    updateExerciseProgress: function(exIndex, exId) {
+        const globalEx = window.GymModel.getExerciseById(exId);
+        const session = window.GymModel.getActiveSession();
+        if (!globalEx || !session || !session.exercises[exIndex]) return;
+
+        const goalV1 = parseFloat(globalEx.goalV1) || 0;
+        const goalV2 = parseFloat(globalEx.goalV2) || 0;
+
+        const progressBar = document.getElementById(`progress-bar-${exIndex}`);
+        const progressText = document.getElementById(`progress-text-${exIndex}`);
+
+        if (!progressBar || !progressText) return;
+
+        if (goalV1 === 0 && goalV2 === 0) {
+            progressBar.style.width = '0%';
+            progressText.textContent = '0%';
+            return;
+        }
+
+        // Calcula a pontuação da meta: (Peso * 12) + Reps
+        const goalScore = (goalV1 * 12) + goalV2;
+        if (goalScore <= 0) return;
+
+        // Busca a melhor série válida desta sessão
+        let maxScore = 0;
+        const sessionEx = session.exercises[exIndex];
+        
+        sessionEx.sets.forEach(set => {
+            if (set.done && !set.isWarmup) {
+                const v1 = parseFloat(set.val1) || 0;
+                const v2 = parseFloat(set.val2) || 0;
+                const score = (v1 * 12) + v2;
+                if (score > maxScore) maxScore = score;
+            }
+        });
+
+        let percent = (maxScore / goalScore) * 100;
+        if (percent > 100) percent = 100;
+
+        progressBar.style.width = `${percent}%`;
+        progressText.textContent = `${percent.toFixed(1)}%`;
+    },
 
     _formatTime: function(seconds) {
         const h = Math.floor(seconds / 3600);
