@@ -140,7 +140,24 @@ window.GymController = {
     },
 
     render: function() {
-        if (window.GymView) window.GymView.render();
+        const session = window.GymModel.getActiveSession();
+        
+        if (session) {
+            // --- CORREÇÃO DE COMPARAÇÃO (HISTÓRICO) ---
+            // Busca o último treino finalizado desta mesma rotina
+            const history = window.GlobalApp.data.gym.history || [];
+            // Encontra o último log que tenha o mesmo routineId
+            const lastSession = history.slice().reverse().find(h => h.routineId === session.routineId);
+            
+            // Envia session atual e lastSession para a View fazer a comparação correta (Treino a Treino)
+            if (window.GymView) window.GymView.renderActiveSession(session, lastSession);
+            
+            if (!this.sessionInterval) this._startWorkoutTimer();
+        } else {
+            if (window.GymView) window.GymView.renderDashboard();
+            clearInterval(this.sessionInterval);
+            this.sessionInterval = null;
+        }
     },
 
     // =========================================
@@ -296,8 +313,8 @@ window.GymController = {
     // =========================================
 
     toggleCheck: function(exIndex, setIndex) {
-        const v1 = document.getElementById(`v1-${exIndex}-${setIndex}`).value;
-        const v2 = document.getElementById(`v2-${exIndex}-${setIndex}`).value;
+        const v1 = document.getElementById(`v1-${exIndex}-${setIndex}`).value.replace(',', '.');
+        const v2 = document.getElementById(`v2-${exIndex}-${setIndex}`).value.replace(',', '.');
         const restVal = document.getElementById(`r-${exIndex}-${setIndex}`).value;
 
         if (!v1 || !v2) {
@@ -310,12 +327,16 @@ window.GymController = {
         const isChecked = window.GymModel.toggleSetCheck(exIndex, setIndex, v1, v2, restVal);
         window.GymView.toggleCheckVisual(exIndex, setIndex, isChecked);
 
+        const session = window.GymModel.getActiveSession();
+        if (session && window.GymView.updateExerciseProgress) {
+            window.GymView.updateExerciseProgress(exIndex, session.exercises[exIndex].id);
+        }
+
         if (isChecked) {
             const seconds = parseInt(restVal) || 60;
             this.startRestTimer(seconds);
 
             // V5.9: Verifica Gatilho do Juramento
-            const session = window.GymModel.getActiveSession();
             const ex = session.exercises[exIndex];
             
             // Se for a última série E ainda não jurou
@@ -349,17 +370,69 @@ window.GymController = {
         if (!session) return;
         
         const set = session.exercises[exIndex].sets[setIndex];
-        set.val1 = document.getElementById(`v1-${exIndex}-${setIndex}`).value;
-        set.val2 = document.getElementById(`v2-${exIndex}-${setIndex}`).value;
+        set.val1 = document.getElementById(`v1-${exIndex}-${setIndex}`).value.replace(',', '.');
+        set.val2 = document.getElementById(`v2-${exIndex}-${setIndex}`).value.replace(',', '.');
         set.rest = document.getElementById(`r-${exIndex}-${setIndex}`).value;
         
         window.GlobalApp.saveData();
+
+        if (window.GymView.updateExerciseProgress) {
+            window.GymView.updateExerciseProgress(exIndex, session.exercises[exIndex].id);
+        }
     },
 
     addSetToExercise: function(exIndex) {
         if (window.SoundManager) window.SoundManager.play('click');
         window.GymModel.addSet(exIndex);
         this.render();
+    },
+
+    // NOVA FUNÇÃO: Deletar Série
+    deleteSet: function(exIndex, setIndex) {
+        if (window.SoundManager) window.SoundManager.play('click');
+        
+        if (confirm("Tem certeza que deseja apagar esta série?")) {
+            const session = window.GymModel.getActiveSession();
+            if (session && session.exercises[exIndex] && session.exercises[exIndex].sets) {
+                // Remove a série do array
+                session.exercises[exIndex].sets.splice(setIndex, 1);
+                
+                // Salva
+                window.GlobalApp.saveData();
+                
+                // Fecha o modal pois a série não existe mais neste índice
+                window.GymView.toggleModal('modal-gym-set-type', false);
+                this.currentSetEditing = null;
+                
+                this.render();
+            }
+        }
+    },
+
+    updateExerciseNote: function(exId, note) {
+        const ex = window.GymModel.getExerciseById(exId);
+        if (ex) {
+            ex.note = note;
+            window.GlobalApp.saveData();
+        }
+    },
+
+    updateExerciseGoal: function(exId, v1, v2) {
+        const ex = window.GymModel.getExerciseById(exId);
+        if (ex) {
+            ex.goalV1 = v1.replace(',', '.');
+            ex.goalV2 = v2.replace(',', '.');
+            window.GlobalApp.saveData();
+            
+            const session = window.GymModel.getActiveSession();
+            if (session && window.GymView.updateExerciseProgress) {
+                session.exercises.forEach((sessionEx, index) => {
+                    if (sessionEx.id === exId) {
+                        window.GymView.updateExerciseProgress(index, exId);
+                    }
+                });
+            }
+        }
     },
 
     // =========================================
