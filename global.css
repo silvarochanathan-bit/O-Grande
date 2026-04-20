@@ -16,6 +16,15 @@
     
     --border-color: #333333;
     
+    /* Variáveis do Controle Financeiro (Tiers) */
+    --fin-tier-abundancia: #00bfa5;
+    --fin-tier-positivo: #00e676;
+    --fin-tier-reserva: #76ff03;
+    --fin-tier-neutro: #e0e0e0;
+    --fin-tier-divida-leve: #ffab00;
+    --fin-tier-divida-media: #ff5252;
+    --fin-tier-divida-profunda: #d50000;
+    
     /* Espaçamentos e Medidas */
     --spacing-sm: 8px;
     --spacing-md: 16px;
@@ -71,6 +80,7 @@ body[data-current-app="hub"] #app-hub { display: flex; }
 body[data-current-app="productivity"] #app-productivity { display: block; }
 body[data-current-app="gym"] #app-gym { display: block; }
 body[data-current-app="diet"] #app-diet { display: block; }
+body[data-current-app="finance"] #app-finance { display: block; }
 
 /* Esconde a navegação interna de abas quando está no HUB */
 body[data-current-app="hub"] #main-nav { display: none; }
@@ -156,6 +166,9 @@ body[data-current-app="hub"] #main-nav { display: none; }
 
 .hub-card[data-app="diet"]:active::before { background: #00e676; }
 .hub-card[data-app="diet"] .hub-icon { color: #00e676; }
+
+.hub-card[data-app="finance"]:active::before { background: #ffd600; }
+.hub-card[data-app="finance"] .hub-icon { color: #ffd600; }
 
 /* ==========================================================================
    CABEÇALHO FIXO (XP) - FLEXÍVEL
@@ -539,23 +552,20 @@ label {
    WIDGET DE AUDITORIA (NOTA FISCAL)
    ========================================================================== */
 #xp-audit-widget {
-    /* DEFAULT (MOBILE): Fixo na parte inferior, largura responsiva */
-    position: fixed; 
-    bottom: 160px; /* Acima do botão 'Virar o Dia' e navegação */
-    left: 20px;
-    width: calc(100vw - 40px); /* Largura total menos margens (Responsivo) */
-    max-height: 40vh; /* Não ocupa mais que 40% da tela */
-    margin: 0; 
-    
+    position: relative; /* Padrão Mobile: Fluxo normal (Rodapé) */
+    width: 90%;
+    margin: 20px auto;
+    margin-bottom: 120px; /* Garante que não fique escondido atrás dos botões fixos */
+    max-height: none; /* Permite crescer conforme o conteúdo */
     background-color: rgba(30, 30, 30, 0.98);
     border: 1px solid var(--accent-color);
     border-radius: 12px;
     padding: 15px;
     z-index: var(--z-overlay);
-    overflow-y: auto; /* Scroll se necessário */
+    overflow-y: visible; /* Remove scroll interno no mobile */
     box-shadow: 0 -5px 25px rgba(0,0,0,0.5);
     backdrop-filter: blur(10px);
-    display: none; 
+    display: none; /* Controlado via JS e classe hidden */
     flex-direction: column;
     gap: 10px;
     animation: slideUp 0.3s ease-out;
@@ -611,35 +621,10 @@ label {
     to { transform: translateX(0); opacity: 1; }
 }
 
-/* ==========================================================================
-   BOTÃO VIRAR O DIA (FIXO/FLUTUANTE)
-   ========================================================================== */
-#btn-turn-day {
-    /* DEFAULT (MOBILE): Fixo na parte inferior, acima da navegação */
-    position: fixed;
-    top: auto;
-    bottom: 100px; /* Garante que não tape a Tab Bar (aprox 60-80px) */
-    right: 20px;
-    z-index: 99999;
-    
-    background: var(--accent-color);
-    color: #fff;
-    border: 2px solid rgba(255,255,255,0.5);
-    padding: 12px 24px;
-    border-radius: 50px;
-    font-weight: 800;
-    text-transform: uppercase;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    animation: pulse-attention 1.5s infinite;
-    backdrop-filter: blur(5px);
-    transform: scale(0.9); /* Um pouco menor no celular */
-}
-
-@keyframes pulse-attention {
-    0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(124, 77, 255, 0.7); }
-    70% { transform: scale(0.95); box-shadow: 0 0 0 15px rgba(124, 77, 255, 0); }
-    100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(124, 77, 255, 0); }
-}
+/* Padding Body Helper (Mobile) - Evita sobreposição (Desativado no novo modelo relativo) */
+/* body.audit-active .app-internal-container {
+    padding-bottom: 400px;
+} */
 
 /* ==========================================================================
    MEDIA QUERIES (DESKTOP)
@@ -672,33 +657,123 @@ label {
         padding: 0 30px;
     }
 
-    /* --- OVERRIDE WIDGET AUDITORIA (DESKTOP) --- */
+    /* Widget Desktop: Canto superior direito (Volta a ser Fixo) */
     #xp-audit-widget {
-        top: 80px;
+        position: fixed;
+        margin: 0; /* Reseta margem mobile */
         bottom: auto;
+        top: 80px;
         left: auto;
         right: 20px;
         width: 320px;
         max-height: 80vh;
+        overflow-y: auto; /* Restaura scroll interno se necessário */
+        box-shadow: 0 5px 25px rgba(0,0,0,0.5);
         animation: slideInRight 0.3s ease-out;
     }
 
-    /* Remove padding excessivo no desktop */
+    /* Remove padding excessivo no desktop, pois o widget está na lateral */
     body.audit-active .app-internal-container {
         padding-bottom: 30px;
     }
+}
 
-    /* --- OVERRIDE BOTÃO VIRAR DIA (DESKTOP) --- */
-    #btn-turn-day {
-        top: 85px;
-        bottom: auto;
-        transform: scale(1);
-        animation: pulse-attention-desktop 1.5s infinite;
-    }
+/* ==========================================================================
+   BOTÃO VIRAR O DIA (FIXO/FLUTUANTE) - NOVO V6.2
+   ========================================================================== */
+#btn-turn-day {
+    position: fixed;
+    top: 85px;
+    right: 20px;
+    z-index: 99999; /* Z-index altíssimo */
+    background: var(--accent-color);
+    color: #fff;
+    border: 2px solid rgba(255,255,255,0.5);
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-weight: 800;
+    text-transform: uppercase;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    animation: pulse-attention 1.5s infinite;
+    backdrop-filter: blur(5px);
+}
 
-    @keyframes pulse-attention-desktop {
-        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(124, 77, 255, 0.7); }
-        70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(124, 77, 255, 0); }
-        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(124, 77, 255, 0); }
-    }
+@keyframes pulse-attention {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(124, 77, 255, 0.7); }
+    70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(124, 77, 255, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(124, 77, 255, 0); }
+}
+
+/* ==========================================================================
+   CONTROLE FINANCEIRO (NOVO V7.0)
+   ========================================================================== */
+.btn-fin-gain {
+    background-color: var(--fin-tier-positivo);
+    color: #000;
+}
+
+.btn-fin-expense {
+    background-color: var(--fin-tier-divida-media);
+    color: #fff;
+}
+
+.finance-dashboard-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 25px;
+    text-align: center;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+}
+
+.finance-balance-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+}
+
+.finance-balance-value {
+    font-size: 2.5rem;
+    font-weight: 900;
+    margin: 10px 0;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    transition: color 0.5s ease;
+}
+
+.finance-tier-label {
+    font-size: 0.85rem;
+    font-weight: bold;
+    padding: 5px 12px;
+    border-radius: 20px;
+    display: inline-block;
+    background: rgba(255,255,255,0.1);
+}
+
+.finance-actions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.finance-action-btn {
+    padding: 15px;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    transition: transform 0.1s;
+}
+
+.finance-action-btn:active {
+    transform: scale(0.95);
 }
