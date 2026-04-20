@@ -1,10 +1,11 @@
 /**
  * GLOBAL.JS
  * Gerenciamento de estado, persistência e Roteamento do Super App.
- * VERSÃO: V6.2 - GAME DAY LOGIC (NOCTURNAL MODE)
+ * VERSÃO: V7.0 - FINANCIAL CONTROL
  * Alterações: Introdução do conceito de "Dia do Jogo" vs "Dia Real".
  * O dia só vira automaticamente após 12:00 (meio-dia). Antes disso, é necessário
  * ação manual do usuário ("Virar o Dia") para consolidar os dados.
+ * Módulo de Finanças adicionado ao DEFAULT_STATE e validApps.
  */
 
 const STORAGE_KEY = 'SITE_C_MASTER_DATA';
@@ -28,7 +29,7 @@ const DEFAULT_STATE = {
     
     // Controle de Navegação
     navigation: { 
-        currentApp: 'hub' // 'hub', 'productivity', 'gym', 'diet'
+        currentApp: 'hub' // 'hub', 'productivity', 'gym', 'diet', 'finance'
     },
 
     // Módulo 1: Produtividade (Legado)
@@ -58,6 +59,12 @@ const DEFAULT_STATE = {
         water: { current: 0, target: 3000 }
     },
 
+    // Módulo 4: Controle Financeiro (Novo)
+    finance: {
+        transactions: [],
+        pendingDebts: []
+    },
+
     // Configurações Globais
     settings: {
         backupUrl: "",
@@ -65,7 +72,8 @@ const DEFAULT_STATE = {
             click: { url: null, volume: 50 },
             xp: { url: null, volume: 50 },
             levelup: { url: null, volume: 50 },
-            chest: { url: null, volume: 50 }
+            chest: { url: null, volume: 50 },
+            coin: { url: null, volume: 50 }
         }
     },
     
@@ -192,6 +200,7 @@ window.GlobalApp = {
         // Novos Módulos (Garante que existam em saves antigos)
         if (!this.data.gym) this.data.gym = JSON.parse(JSON.stringify(DEFAULT_STATE.gym));
         if (!this.data.diet) this.data.diet = JSON.parse(JSON.stringify(DEFAULT_STATE.diet));
+        if (!this.data.finance) this.data.finance = JSON.parse(JSON.stringify(DEFAULT_STATE.finance));
         if (!this.data.navigation) this.data.navigation = { currentApp: 'hub' };
         
         // Meta (Reset e Backup)
@@ -218,7 +227,7 @@ window.GlobalApp = {
     // --- SISTEMA DE ROTEAMENTO ---
     navigate: function(targetApp) {
         // Validação
-        const validApps = ['hub', 'productivity', 'gym', 'diet'];
+        const validApps = ['hub', 'productivity', 'gym', 'diet', 'finance'];
         if (!validApps.includes(targetApp)) targetApp = 'hub';
 
         // Atualiza Estado
