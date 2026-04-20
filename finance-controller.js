@@ -284,4 +284,4 @@ window.FinanceController = {
     }
 };
 
-window.FinanceController.init()};
+window.FinanceController.init();
