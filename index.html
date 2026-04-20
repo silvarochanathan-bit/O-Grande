@@ -59,6 +59,12 @@
                     <span style="font-size:0.8rem; color:#888;">Nutrição & Água</span>
                 </div>
 
+                <div class="hub-card" data-app="finance" onclick="window.GlobalApp.navigate('finance')">
+                    <div class="hub-icon">💰</div>
+                    <span class="hub-label">Finanças</span>
+                    <span style="font-size:0.8rem; color:#888;">Controle & Dívidas</span>
+                </div>
+
             </div>
         </div>
 
@@ -243,6 +249,17 @@
                     <div id="diet-meals-list" style="display: flex; flex-direction: column; gap: 15px;">
                         </div>
                 </div>
+            </div>
+        </div>
+
+        <div id="app-finance" class="app-module">
+            <nav class="finance-internal-nav" style="display: flex; background-color: var(--bg-nav); padding: 10px; gap: 10px; border-bottom: 1px solid var(--border-color); overflow-x: auto;">
+                <button class="finance-nav-btn active" data-finance-target="finance-dashboard-section" style="background: none; border: none; color: var(--text-secondary); padding: 10px 16px; cursor: pointer; font-weight: 600; border-radius: 20px; font-size: 0.9rem; white-space: nowrap;">Visão Geral</button>
+                <button class="finance-nav-btn" data-finance-target="finance-debts-section" style="background: none; border: none; color: var(--text-secondary); padding: 10px 16px; cursor: pointer; font-weight: 600; border-radius: 20px; font-size: 0.9rem; white-space: nowrap;">A Repor</button>
+                <button class="finance-nav-btn" data-finance-target="finance-history-section" style="background: none; border: none; color: var(--text-secondary); padding: 10px 16px; cursor: pointer; font-weight: 600; border-radius: 20px; font-size: 0.9rem; white-space: nowrap;">Histórico</button>
+            </nav>
+            <div class="app-internal-container">
+                <div id="finance-container"></div>
             </div>
         </div>
 
@@ -599,6 +616,9 @@
     <script src="gym-view.js?v=5.7"></script>
     <script src="gym-controller.js?v=5.7"></script>
     <script src="diet.js?v=6.0"></script>
+    <script src="finance-model.js"></script>
+    <script src="finance-view.js"></script>
+    <script src="finance-controller.js"></script>
 
 </body>
 </html>
