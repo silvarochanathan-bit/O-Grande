@@ -78,13 +78,26 @@ window.FinanceView = {
         `;
         container.appendChild(header);
 
-        // Painel Principal (Carteira Livre)
+        // --- MATEMÁTICA DO TERMÔMETRO ---
+        let clampedBalance = Math.max(-2000, Math.min(2000, balance));
+        let percent = (clampedBalance + 2000) / 4000;
+        let topPos = (1 - percent) * 100;
+
+        // Painel Principal (Carteira Livre) com o termômetro embutido
         const balanceCard = document.createElement('div');
         balanceCard.className = 'finance-dashboard-card';
         balanceCard.innerHTML = `
-            <div class="finance-balance-label">Carteira Livre</div>
-            <div class="finance-balance-value" style="color: ${tier.color};">${this._formatMoney(balance)}</div>
-            <div class="finance-tier-label" style="background: ${tier.color}22; color: ${tier.color};">${tier.label}</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div style="flex: 1;">
+                    <div class="finance-balance-label">Carteira Livre</div>
+                    <div class="finance-balance-value" style="color: ${tier.color};">${this._formatMoney(balance)}</div>
+                    <div class="finance-tier-label" style="background: ${tier.color}22; color: ${tier.color};">${tier.label}</div>
+                </div>
+                <div style="position: relative; height: 90px; width: 12px; margin-left: 20px;">
+                    <div style="position: absolute; right: 100%; top: ${topPos}%; transform: translateY(-50%); font-size: 1.1rem; color: #fff; margin-right: 5px;">▶</div>
+                    <div style="width: 100%; height: 100%; border-radius: 6px; background: linear-gradient(to top, var(--fin-tier-divida-profunda) 0%, var(--fin-tier-neutro) 50%, var(--fin-tier-abundancia) 100%);"></div>
+                </div>
+            </div>
         `;
         container.appendChild(balanceCard);
 
@@ -101,8 +114,28 @@ window.FinanceView = {
             <button class="finance-action-btn" style="grid-column: 1 / -1; background: #222; border: 1px solid #444; color: #fff;" onclick="window.FinanceController.openUberModal()">
                 <span style="font-size: 1.5rem;">🚗</span> Calc. Uber
             </button>
+            <button class="finance-action-btn" style="grid-column: 1 / -1; background: #1a365d; border: 1px solid #2b6cb0; color: #fff;" onclick="window.FinanceController.openPrepaidModal()">
+                <span style="font-size: 1.5rem;">⛽</span> Abastecer Antecipado
+            </button>
         `;
         container.appendChild(actionsGrid);
+
+        // Saldos Pré-pagos
+        const credits = window.FinanceModel.getPrepaidCredits();
+        if (credits && credits.length > 0) {
+            const creditsDiv = document.createElement('div');
+            creditsDiv.style.marginBottom = '20px';
+            creditsDiv.innerHTML = `<h3 style="color: #63b3ed; border-bottom: 1px solid #333; padding-bottom: 5px; font-size:1rem;">Saldos Pré-pagos</h3>`;
+            credits.forEach(c => {
+                creditsDiv.innerHTML += `
+                    <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #333; font-size: 0.9rem;">
+                        <span>${c.category}</span>
+                        <span style="color: #63b3ed; font-weight: bold;">${this._formatMoney(c.amount)}</span>
+                    </div>
+                `;
+            });
+            container.appendChild(creditsDiv);
+        }
 
         // Resumo por Categorias (Ganhos)
         const gainsDiv = document.createElement('div');
@@ -241,9 +274,19 @@ window.FinanceView = {
             } else if (t.type === 'debt_payment') {
                 color = 'var(--fin-tier-neutro)';
                 signal = '↓';
+            } else if (t.type === 'credit_usage') {
+                color = '#63b3ed';
+                signal = '↓';
             }
 
-            const pendingBadge = t.isPending ? `<span style="font-size:0.65rem; background:var(--fin-tier-divida-leve); color:#000; padding:2px 4px; border-radius:4px; margin-left:5px;">A Repor</span>` : '';
+            let pendingBadge = '';
+            if (t.isPending) {
+                pendingBadge = `<span style="font-size:0.65rem; background:var(--fin-tier-divida-leve); color:#000; padding:2px 4px; border-radius:4px; margin-left:5px;">A Repor</span>`;
+            } else if (t.isPrepaidPurchase) {
+                pendingBadge = `<span style="font-size:0.65rem; background:#1a365d; color:#fff; padding:2px 4px; border-radius:4px; margin-left:5px; border:1px solid #2b6cb0;">Pré-pago</span>`;
+            } else if (t.type === 'credit_usage') {
+                pendingBadge = `<span style="font-size:0.65rem; background:#63b3ed; color:#000; padding:2px 4px; border-radius:4px; margin-left:5px;">Uso de Crédito</span>`;
+            }
 
             rowsHTML += `
                 <tr>
@@ -328,6 +371,38 @@ window.FinanceView = {
             });
         }
 
+        // MODAL PRÉ-PAGO (NOVO)
+        if (!document.getElementById('modal-finance-prepaid')) {
+            const prepaidDiv = document.createElement('div');
+            prepaidDiv.id = 'modal-finance-prepaid';
+            prepaidDiv.className = 'modal-overlay hidden';
+            prepaidDiv.innerHTML = `
+                <div class="modal-content">
+                    <h3 class="gym-modal-title" style="margin-bottom:15px; color:#63b3ed;">⛽ Abastecer Antecipado</h3>
+                    <form id="form-finance-prepaid">
+                        <div style="margin-bottom:15px;">
+                            <label style="display:block; color:#aaa; font-size:0.8rem; margin-bottom:5px;">Valor Pago (R$)</label>
+                            <input type="number" id="fin-prepaid-amount" style="width:100%; padding:10px; border-radius:6px; border:1px solid #444; background:#000; color:#fff;" step="0.01" required>
+                        </div>
+                        <div style="margin-bottom:15px;">
+                            <label style="display:block; color:#aaa; font-size:0.8rem; margin-bottom:5px;">Categoria</label>
+                            <input type="text" id="fin-prepaid-category" value="Gasolina" style="width:100%; padding:10px; border-radius:6px; border:1px solid #444; background:#000; color:#fff;" required>
+                        </div>
+                        <div class="modal-actions">
+                            <button type="button" class="secondary-btn" onclick="window.FinanceView.toggleModal('modal-finance-prepaid', false)">Cancelar</button>
+                            <button type="submit" class="primary-btn">Comprar Crédito</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            document.body.appendChild(prepaidDiv);
+
+            document.getElementById('form-finance-prepaid').addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (window.FinanceController) window.FinanceController.submitPrepaidCredit();
+            });
+        }
+
         // MODAL UBER
         if (!document.getElementById('modal-finance-uber')) {
             const uberDiv = document.createElement('div');
@@ -369,6 +444,18 @@ window.FinanceView = {
                         <div style="margin-bottom:15px;">
                             <label style="display:block; color:#aaa; font-size:0.8rem; margin-bottom:5px;">Faturamento Bruto (R$)</label>
                             <input type="number" id="uber-gross-revenue" style="width:100%; padding:10px; border-radius:6px; border:1px solid #444; background:#000; color:#fff;" step="0.01" required placeholder="0,00">
+                        </div>
+
+                        <div style="margin-bottom:15px; background:rgba(255,255,255,0.05); padding:10px; border-radius:8px;">
+                            <label style="display:block; color:#aaa; font-size:0.8rem; margin-bottom:5px;">Forma de Custeio (Gasolina)</label>
+                            <div style="display:flex; gap:10px;">
+                                <label class="checkbox-label" style="flex:1; display:flex; align-items:center; gap:5px; font-size:0.8rem;">
+                                    <input type="radio" name="uber-funding" value="debt" checked> Gerar Dívida
+                                </label>
+                                <label class="checkbox-label" style="flex:1; display:flex; align-items:center; gap:5px; font-size:0.8rem;">
+                                    <input type="radio" name="uber-funding" value="prepaid"> Usar Pré-pago
+                                </label>
+                            </div>
                         </div>
 
                         <div class="modal-actions">
