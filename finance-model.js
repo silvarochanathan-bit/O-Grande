@@ -20,6 +20,10 @@ window.FinanceModel = {
                 fuelPrice: 5.50
             };
         }
+        // Injeção Crédito Pré-pago
+        if (!window.GlobalApp.data.finance.prepaidCredits) {
+            window.GlobalApp.data.finance.prepaidCredits = [];
+        }
         console.log("[FinanceModel] Cérebro Financeiro Ativado.");
     },
 
@@ -39,7 +43,7 @@ window.FinanceModel = {
             } else if (t.type === 'expense') {
                 balance -= t.amount;
             }
-            // 'debt_payment' é ignorado aqui para não duplicar o desconto
+            // 'debt_payment' e 'credit_usage' são ignorados aqui para não duplicar o desconto
         });
         
         return balance;
@@ -65,14 +69,55 @@ window.FinanceModel = {
     },
 
     /**
-     * Adiciona um Gasto e opcionalmente cria uma Provisão/Dívida (Ex: Gasolina a repor)
+     * Adiciona um Gasto e opcionalmente cria uma Provisão/Dívida ou Abate de Crédito
      */
-    addExpense: function(amount, category, isPending, note) {
-        const parsedAmount = parseFloat(amount);
+    addExpense: function(amount, category, isPending, note, usePrepaid) {
+        let parsedAmount = parseFloat(amount);
         
+        // --- INJEÇÃO: ABATE INTELIGENTE ---
+        if (!window.GlobalApp.data.finance.prepaidCredits) window.GlobalApp.data.finance.prepaidCredits = [];
+        const creditsToUse = window.GlobalApp.data.finance.prepaidCredits;
+        let existingCred = creditsToUse.find(c => c.category === category);
+
+        if (existingCred && existingCred.amount > 0) {
+            if (existingCred.amount >= parsedAmount) {
+                // Tem crédito suficiente para cobrir tudo
+                usePrepaid = true;
+                isPending = false;
+            } else {
+                // Cobre apenas parte. Usa todo o crédito e debita o resto da carteira.
+                let creditUsed = existingCred.amount;
+                parsedAmount = parsedAmount - creditUsed;
+                
+                // Registra silenciosamente a parte paga com crédito
+                window.GlobalApp.data.finance.transactions.push({
+                    id: window.GlobalApp.generateUUID(),
+                    type: 'credit_usage',
+                    amount: creditUsed,
+                    category: category,
+                    isPending: false,
+                    note: (note ? note + ' ' : '') + '(Abate Parcial de Crédito)',
+                    date: window.GlobalApp.getGameDate(),
+                    timestamp: Date.now() - 1 
+                });
+                
+                // Zera o crédito
+                existingCred.amount = 0;
+                creditsToUse.splice(creditsToUse.indexOf(existingCred), 1);
+                
+                usePrepaid = false; // A sobra segue como um gasto normal
+            }
+        } else {
+            usePrepaid = false; // Previne uso fantasma se não tem saldo
+        }
+        // --- FIM DA INJEÇÃO ---
+
+        // Se usar crédito, o tipo muda para não abater da carteira livre (pois já foi abatido na compra)
+        const txType = usePrepaid ? 'credit_usage' : 'expense';
+
         const tx = {
             id: window.GlobalApp.generateUUID(),
-            type: 'expense',
+            type: txType,
             amount: parsedAmount,
             category: category,
             isPending: isPending,
@@ -83,8 +128,19 @@ window.FinanceModel = {
         
         window.GlobalApp.data.finance.transactions.push(tx);
 
-        // Se for um gasto que precisa ser "reposto" no futuro (Dívida Acumulada)
-        if (isPending) {
+        if (usePrepaid) {
+            if (!window.GlobalApp.data.finance.prepaidCredits) window.GlobalApp.data.finance.prepaidCredits = [];
+            const credits = window.GlobalApp.data.finance.prepaidCredits;
+            let existingCredit = credits.find(c => c.category === category);
+            
+            if (existingCredit) {
+                existingCredit.amount -= parsedAmount;
+                if (existingCredit.amount <= 0.01) {
+                    credits.splice(credits.indexOf(existingCredit), 1);
+                }
+            }
+        } else if (isPending) {
+            if (!window.GlobalApp.data.finance.pendingDebts) window.GlobalApp.data.finance.pendingDebts = [];
             const debts = window.GlobalApp.data.finance.pendingDebts;
             let existingDebt = debts.find(d => d.category === category);
             
@@ -104,9 +160,48 @@ window.FinanceModel = {
     },
 
     /**
+     * Adiciona um Crédito Pré-pago (Ex: Abastecimento Antecipado de R$100)
+     */
+    addPrepaidCredit: function(amount, category, note) {
+        const parsedAmount = parseFloat(amount);
+        
+        const tx = {
+            id: window.GlobalApp.generateUUID(),
+            type: 'expense', // Tira da carteira real no momento da compra
+            amount: parsedAmount,
+            category: category,
+            isPending: false,
+            isPrepaidPurchase: true, // Tag para podermos reverter se deletado
+            note: note || 'Compra Antecipada',
+            date: window.GlobalApp.getGameDate(),
+            timestamp: Date.now()
+        };
+        
+        window.GlobalApp.data.finance.transactions.push(tx);
+
+        if (!window.GlobalApp.data.finance.prepaidCredits) window.GlobalApp.data.finance.prepaidCredits = [];
+        const credits = window.GlobalApp.data.finance.prepaidCredits;
+        let existingCredit = credits.find(c => c.category === category);
+        
+        if (existingCredit) {
+            existingCredit.amount += parsedAmount;
+        } else {
+            credits.push({
+                id: window.GlobalApp.generateUUID(),
+                category: category,
+                amount: parsedAmount
+            });
+        }
+
+        window.GlobalApp.saveData();
+        return tx;
+    },
+
+    /**
      * Abate/Quita uma Dívida Pendente (Total ou Parcial)
      */
     payPendingDebt: function(debtId, amountPaid) {
+        if (!window.GlobalApp.data.finance.pendingDebts) window.GlobalApp.data.finance.pendingDebts = [];
         const debts = window.GlobalApp.data.finance.pendingDebts;
         const debt = debts.find(d => d.id === debtId);
         
@@ -142,6 +237,10 @@ window.FinanceModel = {
 
     getPendingDebts: function() {
         return window.GlobalApp.data.finance.pendingDebts || [];
+    },
+
+    getPrepaidCredits: function() {
+        return window.GlobalApp.data.finance.prepaidCredits || [];
     },
 
     /**
@@ -208,10 +307,22 @@ window.FinanceModel = {
     // =========================================
 
     getUberSettings: function() {
+        if (!window.GlobalApp.data.finance.uberSettings) {
+            window.GlobalApp.data.finance.uberSettings = {
+                kmPerLiter: 10.0,
+                fuelPrice: 5.50
+            };
+        }
         return window.GlobalApp.data.finance.uberSettings;
     },
 
     saveUberSettings: function(kmpl, price) {
+        if (!window.GlobalApp.data.finance.uberSettings) {
+            window.GlobalApp.data.finance.uberSettings = {
+                kmPerLiter: 10.0,
+                fuelPrice: 5.50
+            };
+        }
         window.GlobalApp.data.finance.uberSettings.kmPerLiter = parseFloat(kmpl) || 10.0;
         window.GlobalApp.data.finance.uberSettings.fuelPrice = parseFloat(price) || 5.50;
         window.GlobalApp.saveData();
@@ -223,7 +334,12 @@ window.FinanceModel = {
         if (idx === -1) return false;
 
         const tx = txs[idx];
+        
+        if (!window.GlobalApp.data.finance.pendingDebts) window.GlobalApp.data.finance.pendingDebts = [];
+        if (!window.GlobalApp.data.finance.prepaidCredits) window.GlobalApp.data.finance.prepaidCredits = [];
+        
         const debts = window.GlobalApp.data.finance.pendingDebts;
+        const credits = window.GlobalApp.data.finance.prepaidCredits;
 
         // Reverte efeitos de dívidas pendentes
         if (tx.type === 'expense' && tx.isPending) {
@@ -246,6 +362,25 @@ window.FinanceModel = {
                     amount: tx.amount
                 });
             }
+        } else if (tx.type === 'credit_usage') {
+            // Se apaguei um uso de crédito, o saldo do crédito volta a existir
+            let credit = credits.find(c => c.category === tx.category);
+            if (credit) {
+                credit.amount += tx.amount;
+            } else {
+                credits.push({
+                    id: window.GlobalApp.generateUUID(),
+                    category: tx.category,
+                    amount: tx.amount
+                });
+            }
+        } else if (tx.type === 'expense' && tx.isPrepaidPurchase) {
+            // Se apaguei a compra do crédito, o saldo do pré-pago diminui
+            let credit = credits.find(c => c.category === tx.category);
+            if (credit) {
+                credit.amount -= tx.amount;
+                if (credit.amount <= 0.01) credits.splice(credits.indexOf(credit), 1);
+            }
         }
 
         // Remove a transação do banco
@@ -259,7 +394,11 @@ window.FinanceModel = {
         const tx = txs.find(t => t.id === id);
         if (!tx) return false;
 
+        if (!window.GlobalApp.data.finance.pendingDebts) window.GlobalApp.data.finance.pendingDebts = [];
+        if (!window.GlobalApp.data.finance.prepaidCredits) window.GlobalApp.data.finance.prepaidCredits = [];
+
         const debts = window.GlobalApp.data.finance.pendingDebts;
+        const credits = window.GlobalApp.data.finance.prepaidCredits;
 
         // 1. Reverter o efeito da transação original (Matemática Reversa)
         if (tx.type === 'expense' && tx.isPending) {
@@ -272,6 +411,16 @@ window.FinanceModel = {
             let debt = debts.find(d => d.category === tx.category);
             if (debt) debt.amount += tx.amount;
             else debts.push({ id: window.GlobalApp.generateUUID(), category: tx.category, amount: tx.amount });
+        } else if (tx.type === 'credit_usage') {
+            let credit = credits.find(c => c.category === tx.category);
+            if (credit) credit.amount += tx.amount;
+            else credits.push({ id: window.GlobalApp.generateUUID(), category: tx.category, amount: tx.amount });
+        } else if (tx.type === 'expense' && tx.isPrepaidPurchase) {
+            let credit = credits.find(c => c.category === tx.category);
+            if (credit) {
+                credit.amount -= tx.amount;
+                if (credit.amount <= 0.01) credits.splice(credits.indexOf(credit), 1);
+            }
         }
 
         // 2. Atualizar os dados para a nova configuração
@@ -281,7 +430,7 @@ window.FinanceModel = {
         tx.note = newNote || '';
         
         // 3. Re-aplicar o efeito na provisão com os valores novos
-        if (tx.type === 'expense') {
+        if (tx.type === 'expense' && !tx.isPrepaidPurchase) {
             tx.isPending = newIsPending;
             if (tx.isPending) {
                 let debt = debts.find(d => d.category === tx.category);
@@ -294,6 +443,21 @@ window.FinanceModel = {
             if (debt) {
                 debt.amount -= parsedAmount;
                 if (debt.amount <= 0.01) debts.splice(debts.indexOf(debt), 1);
+            }
+        } else if (tx.type === 'credit_usage') {
+            tx.category = newCategory;
+            let credit = credits.find(c => c.category === tx.category);
+            if (credit) {
+                credit.amount -= parsedAmount;
+                if (credit.amount <= 0.01) credits.splice(credits.indexOf(credit), 1);
+            }
+        } else if (tx.type === 'expense' && tx.isPrepaidPurchase) {
+            tx.category = newCategory;
+            let credit = credits.find(c => c.category === tx.category);
+            if (credit) {
+                credit.amount += parsedAmount;
+            } else {
+                credits.push({ id: window.GlobalApp.generateUUID(), category: tx.category, amount: parsedAmount });
             }
         }
 
