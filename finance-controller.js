@@ -40,14 +40,11 @@ window.FinanceController = {
     },
 
     changeFilter: function(daysVal) {
-        if (window.SoundManager) window.SoundManager.play('click');
         window.FinanceView.currentFilter = parseInt(daysVal);
         this.render();
     },
 
     openAddModal: function(type) {
-        if (window.SoundManager) window.SoundManager.play('click');
-        
         document.getElementById('fin-modal-type').value = type;
         var title = document.getElementById('fin-modal-title');
         var pendingGroup = document.getElementById('fin-pending-group');
@@ -55,7 +52,6 @@ window.FinanceController = {
         
         form.reset();
 
-        // Customiza o modal dependendo de qual botão foi clicado
         if (type === 'gain') {
             title.textContent = "Adicionar Ganho";
             title.style.color = "var(--fin-tier-positivo)";
@@ -63,7 +59,7 @@ window.FinanceController = {
         } else {
             title.textContent = "Adicionar Gasto";
             title.style.color = "var(--fin-tier-divida-media)";
-            pendingGroup.style.display = "block"; // Libera a opção de jogar pra dívida
+            pendingGroup.style.display = "block"; 
         }
 
         window.FinanceView.toggleModal('modal-finance-transaction', true);
@@ -82,7 +78,6 @@ window.FinanceController = {
             return;
         }
 
-        // Guarda o nível atual ANTES da transação para podermos comparar depois
         var oldTier = window.FinanceModel.getTier();
 
         if (type === 'gain') {
@@ -93,20 +88,13 @@ window.FinanceController = {
 
         window.FinanceView.toggleModal('modal-finance-transaction', false);
         
-        // Verifica se houve mudança de nível
         var newTier = window.FinanceModel.getTier();
         this.checkTierUpgrade(oldTier, newTier);
-
-        if (window.SoundManager && oldTier.id === newTier.id) {
-            window.SoundManager.play('coin'); // Som normal de transação se não subiu de nível
-        }
 
         this.render();
     },
 
     promptPayDebt: async function(debtId, category, maxAmount) {
-        if (window.SoundManager) window.SoundManager.play('click');
-        
         var msg = `💰 ABATER PROVISÃO: ${category}\n\nVocê tem R$ ${maxAmount.toFixed(2)} pendentes.\nQuanto você está repondo/pagando agora? (Use ponto ou vírgula)`;
         var result = await prompt(msg, maxAmount.toFixed(2));
         
@@ -126,13 +114,9 @@ window.FinanceController = {
         var success = window.FinanceModel.payPendingDebt(debtId, amountPaid);
         
         if (success) {
-            // Abater dívida não muda o Tier (pois o dinheiro já foi deduzido da carteira na hora do gasto),
-            // Mas dá a sensação emocional de peso aliviado!
             if (amountPaid === maxAmount) {
-                if (window.SoundManager) window.SoundManager.play('levelup');
                 await alert(`🎉 PARABÉNS! Provisão de "${category}" totalmente reposta! Menos um peso nas costas.`);
             } else {
-                if (window.SoundManager) window.SoundManager.play('coin');
                 alert(`✅ R$ ${amountPaid.toFixed(2)} abatidos da provisão de "${category}".`);
             }
 
@@ -145,27 +129,48 @@ window.FinanceController = {
         var newVal = this.tierLevels[newTier.id] || 0;
 
         if (newVal > oldVal) {
-            // EVOLUÇÃO (Subiu rumo ao positivo)
-            if (window.SoundManager) window.SoundManager.play('chest');
-            
             setTimeout(function() {
-                alert(`🌟 EVOLUÇÃO FINANCEIRA!\n\nVocê avançou para o nível: ${newTier.label}!\n\nContinue administrando seus recursos com sabedoria. O controle é o primeiro passo para a liberdade absoluta.`);
+                alert("🌟 EVOLUÇÃO FINANCEIRA!\n\nVocê avançou para o nível: " + newTier.label + "!\n\nContinue administrando seus recursos com sabedoria.");
             }, 500);
-            
         } else if (newVal < oldVal) {
-            // REGRESSÃO
             if (newTier.id.includes('divida') && !oldTier.id.includes('divida')) {
-                // Caiu de uma fase neutra/positiva para o vermelho
                 setTimeout(function() {
-                    alert(`⚠️ ATENÇÃO: Você entrou no espectro de dívida (${newTier.label}).\n\nHora de segurar os gastos e focar em repor a carteira!`);
+                    alert("⚠️ ATENÇÃO: Você entrou no espectro de dívida (" + newTier.label + ").\n\nHora de segurar os gastos!");
                 }, 500);
             }
         }
     },
 
     // =========================================
-    // NOVAS FUNÇÕES (UBER, EDITAR, DELETAR) - SEM SOUNDMANAGER
+    // NOVAS FUNÇÕES (UBER, EDITAR, DELETAR, PRÉ-PAGO)
     // =========================================
+
+    openPrepaidModal: function() {
+        document.getElementById('form-finance-prepaid').reset();
+        document.getElementById('fin-prepaid-category').value = "Gasolina"; 
+        window.FinanceView.toggleModal('modal-finance-prepaid', true);
+    },
+
+    submitPrepaidCredit: function() {
+        var amountStr = document.getElementById('fin-prepaid-amount').value.replace(',', '.');
+        var amount = parseFloat(amountStr);
+        var category = document.getElementById('fin-prepaid-category').value;
+
+        if (isNaN(amount) || amount <= 0) {
+            alert("Digite um valor válido maior que zero.");
+            return;
+        }
+
+        var oldTier = window.FinanceModel.getTier();
+        
+        window.FinanceModel.addPrepaidCredit(amount, category, "Compra Antecipada (" + category + ")");
+        
+        window.FinanceView.toggleModal('modal-finance-prepaid', false);
+        
+        var newTier = window.FinanceModel.getTier();
+        this.checkTierUpgrade(oldTier, newTier);
+        this.render();
+    },
 
     openUberModal: function() {
         var settings = window.FinanceModel.getUberSettings();
@@ -177,7 +182,6 @@ window.FinanceController = {
         document.getElementById('uber-gross-revenue').value = '';
         
         document.getElementById('uber-config-area').classList.add('hidden');
-
         window.FinanceView.toggleModal('modal-finance-uber', true);
     },
 
@@ -192,39 +196,48 @@ window.FinanceController = {
             alert("Preencha todos os campos com números válidos.");
             return;
         }
-
         if (kmEnd <= kmStart) {
             alert("O Odômetro Final deve ser maior que o Inicial.");
             return;
         }
 
-        // Salva configurações para a próxima
-        window.FinanceModel.saveUberSettings(kmpl, price);
+        var usePrepaid = false;
+        var fundingRadios = document.getElementsByName('uber-funding');
+        if (fundingRadios) {
+            for (var i = 0; i < fundingRadios.length; i++) {
+                if (fundingRadios[i].checked && fundingRadios[i].value === 'prepaid') {
+                    usePrepaid = true;
+                    break;
+                }
+            }
+        }
 
+        window.FinanceModel.saveUberSettings(kmpl, price);
         var distance = kmEnd - kmStart;
         var fuelCost = (distance / kmpl) * price;
         var netProfit = gross - fuelCost;
 
         var oldTier = window.FinanceModel.getTier();
-
-        // 1. Registra o Ganho (Lucro Líquido)
-        window.FinanceModel.addGain(netProfit, 'Uber', `Lucro Líquido (Rodou ${distance.toFixed(1)}km)`);
         
-        // 2. Registra o Gasto da Gasolina já como Provisão (A Repor)
-        window.FinanceModel.addExpense(fuelCost, 'Gasolina', true, `Provisão Uber (${distance.toFixed(1)}km)`);
+        // CIRURGIA: Cálculo de eficiência e nova string formatada focando no Líquido
+        var efficiency = gross / distance;
+        var customNote = "Rodou " + distance.toFixed(1) + "km | Líquido: R$ " + netProfit.toFixed(2).replace('.', ',') + " | Média: R$ " + efficiency.toFixed(2).replace('.', ',') + "/km";
+        
+        // CIRURGIA: Registra o Bruto como ganho. A despesa abaixo compensará o cálculo para o saldo ficar Líquido.
+        window.FinanceModel.addGain(gross, 'Uber', customNote);
+        
+        // Passando !usePrepaid para isPending e usePrepaid como quinto argumento
+        window.FinanceModel.addExpense(fuelCost, 'Gasolina', !usePrepaid, "Provisão Uber (" + distance.toFixed(1) + "km)", usePrepaid);
 
         window.FinanceView.toggleModal('modal-finance-uber', false);
-
         var newTier = window.FinanceModel.getTier();
         this.checkTierUpgrade(oldTier, newTier);
-
         this.render();
     },
 
     deleteTransaction: async function(id) {
-        if (await confirm("Tem certeza que deseja apagar esta transação? Isso reverterá seus efeitos na carteira e nas provisões.")) {
+        if (confirm("Tem certeza que deseja apagar esta transação? Isso reverterá os seus efeitos.")) {
             var oldTier = window.FinanceModel.getTier();
-            
             var success = window.FinanceModel.deleteTransaction(id);
             if (success) {
                 var newTier = window.FinanceModel.getTier();
@@ -254,7 +267,6 @@ window.FinanceController = {
             pendingGroup.style.display = 'none';
             pendingCheck.checked = false;
         }
-
         window.FinanceView.toggleModal('modal-finance-edit', true);
     },
 
@@ -267,14 +279,12 @@ window.FinanceController = {
         var isPending = document.getElementById('fin-edit-pending').checked;
 
         if (isNaN(amount) || amount <= 0) {
-            alert("Digite um valor válido maior que zero.");
+            alert("Digite um valor válido.");
             return;
         }
 
         var oldTier = window.FinanceModel.getTier();
-
         var success = window.FinanceModel.editTransaction(id, amount, category, note, isPending);
-        
         if (success) {
             window.FinanceView.toggleModal('modal-finance-edit', false);
             var newTier = window.FinanceModel.getTier();
