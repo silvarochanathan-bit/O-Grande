@@ -6,15 +6,18 @@
 
 window.FinanceController = {
 
-    // Mapa de valores para comparar subidas e descidas de nível
+    // CIRURGIA FASE 3: Mapa atualizado para reconhecer as novas linhas de riqueza do termômetro
     tierLevels: {
-        'divida_profunda': 1,
-        'divida_media': 2,
-        'divida_leve': 3,
-        'neutro': 4,
-        'reserva': 5,
-        'positivo': 6,
-        'abundancia': 7
+        'divida_critica': 1,
+        'divida_profunda': 2,
+        'divida_media': 3,
+        'divida_leve': 4,
+        'neutro': 5,
+        'reserva': 6,
+        'positivo': 7,
+        'crescimento': 8,
+        'abundancia': 9,
+        'liberdade': 10
     },
 
     init: function() {
@@ -89,9 +92,26 @@ window.FinanceController = {
         window.FinanceView.toggleModal('modal-finance-transaction', false);
         
         var newTier = window.FinanceModel.getTier();
-        this.checkTierUpgrade(oldTier, newTier);
-
+        
+        // CIRURGIA ÚNICA: Renderiza primeiro e dispara a animação para transações genéricas
         this.render();
+
+        var percentChange = (amount / 4000) * 100;
+        setTimeout(function() {
+            var badge = document.getElementById('finance-thermometer-badge');
+            if (badge) {
+                var isGain = type === 'gain';
+                badge.innerHTML = (isGain ? "+" : "-") + percentChange.toFixed(1).replace('.', ',') + "%";
+                badge.style.background = isGain ? "var(--fin-tier-positivo)" : "var(--fin-tier-divida-media)";
+                badge.style.opacity = "1";
+                
+                setTimeout(function() {
+                    badge.style.opacity = "0";
+                }, 4000);
+            }
+        }, 100);
+
+        this.checkTierUpgrade(oldTier, newTier);
     },
 
     promptPayDebt: async function(debtId, category, maxAmount) {
@@ -131,12 +151,12 @@ window.FinanceController = {
         if (newVal > oldVal) {
             setTimeout(function() {
                 alert("🌟 EVOLUÇÃO FINANCEIRA!\n\nVocê avançou para o nível: " + newTier.label + "!\n\nContinue administrando seus recursos com sabedoria.");
-            }, 500);
+            }, 1600); // CIRURGIA ÚNICA: Atraso mágico para a animação acabar primeiro
         } else if (newVal < oldVal) {
             if (newTier.id.includes('divida') && !oldTier.id.includes('divida')) {
                 setTimeout(function() {
                     alert("⚠️ ATENÇÃO: Você entrou no espectro de dívida (" + newTier.label + ").\n\nHora de segurar os gastos!");
-                }, 500);
+                }, 1600); // CIRURGIA ÚNICA: Atraso mágico para a animação acabar primeiro
             }
         }
     },
@@ -182,17 +202,51 @@ window.FinanceController = {
         document.getElementById('uber-gross-revenue').value = '';
         
         document.getElementById('uber-config-area').classList.add('hidden');
+
+        var session = window.FinanceModel.getUberSession();
+        if (session.active) {
+            document.getElementById('uber-step-1').style.display = 'none';
+            document.getElementById('uber-step-2').style.display = 'block';
+            document.getElementById('uber-km-start-display').textContent = session.startKm.toFixed(1);
+        } else {
+            document.getElementById('uber-step-1').style.display = 'block';
+            document.getElementById('uber-step-2').style.display = 'none';
+        }
+        
         window.FinanceView.toggleModal('modal-finance-uber', true);
     },
 
+    startUberSession: function() {
+        var startKm = parseFloat(document.getElementById('uber-km-start').value.replace(',', '.'));
+        if (isNaN(startKm)) {
+            alert("Digite o odômetro inicial válido.");
+            return;
+        }
+        window.FinanceModel.startUberSession(startKm);
+        document.getElementById('uber-step-1').style.display = 'none';
+        document.getElementById('uber-step-2').style.display = 'block';
+        document.getElementById('uber-km-start-display').textContent = startKm.toFixed(1);
+    },
+
+    cancelUberSession: function() {
+        window.FinanceModel.clearUberSession();
+        window.FinanceView.toggleModal('modal-finance-uber', false);
+    },
+
     processUberSession: function() {
-        var kmStart = parseFloat(document.getElementById('uber-km-start').value.replace(',', '.'));
+        var session = window.FinanceModel.getUberSession();
+        if (!session.active) {
+            alert("Nenhuma sessão ativa encontrada.");
+            return;
+        }
+
+        var kmStart = session.startKm;
         var kmEnd = parseFloat(document.getElementById('uber-km-end').value.replace(',', '.'));
         var gross = parseFloat(document.getElementById('uber-gross-revenue').value.replace(',', '.'));
         var kmpl = parseFloat(document.getElementById('uber-km-liter').value.replace(',', '.'));
         var price = parseFloat(document.getElementById('uber-fuel-price').value.replace(',', '.'));
 
-        if (isNaN(kmStart) || isNaN(kmEnd) || isNaN(gross) || isNaN(kmpl) || isNaN(price)) {
+        if (isNaN(kmEnd) || isNaN(gross) || isNaN(kmpl) || isNaN(price)) {
             alert("Preencha todos os campos com números válidos.");
             return;
         }
@@ -219,20 +273,57 @@ window.FinanceController = {
 
         var oldTier = window.FinanceModel.getTier();
         
-        // CIRURGIA: Cálculo de eficiência e nova string formatada focando no Líquido
         var efficiency = gross / distance;
         var customNote = "Rodou " + distance.toFixed(1) + "km | Líquido: R$ " + netProfit.toFixed(2).replace('.', ',') + " | Média: R$ " + efficiency.toFixed(2).replace('.', ',') + "/km";
         
-        // CIRURGIA: Registra o Bruto como ganho. A despesa abaixo compensará o cálculo para o saldo ficar Líquido.
-        window.FinanceModel.addGain(gross, 'Uber', customNote);
-        
-        // Passando !usePrepaid para isPending e usePrepaid como quinto argumento
+        window.FinanceModel.addGain(gross, 'Uber', customNote, netProfit);
         window.FinanceModel.addExpense(fuelCost, 'Gasolina', !usePrepaid, "Provisão Uber (" + distance.toFixed(1) + "km)", usePrepaid);
+        window.FinanceModel.clearUberSession();
 
         window.FinanceView.toggleModal('modal-finance-uber', false);
-        var newTier = window.FinanceModel.getTier();
-        this.checkTierUpgrade(oldTier, newTier);
+        
+        document.getElementById('celeb-net-profit').textContent = "R$ " + netProfit.toFixed(2).replace('.', ',');
+        document.getElementById('celeb-gas-cost').textContent = "R$ " + fuelCost.toFixed(2).replace('.', ',');
+        document.getElementById('celeb-distance').textContent = distance.toFixed(1).replace('.', ',') + " km";
+        document.getElementById('celeb-efficiency').textContent = "R$ " + efficiency.toFixed(2).replace('.', ',') + " / km";
+        
+        window.FinanceView.toggleModal('modal-finance-celebration', true);
+
+        // Guarda os dados secretamente e não atualiza o painel ainda
+        window.FinanceController._tempOldTier = oldTier;
+        window.FinanceController._tempPercentGain = (netProfit / 4000) * 100;
+    },
+
+    closeCelebration: function() {
+        window.FinanceView.toggleModal('modal-finance-celebration', false);
+        
+        // O grande momento! Renderiza a tela para acionar a setinha do CSS
         this.render();
+
+        // Checa e dispara mensagens de motivação/alerta
+        if (window.FinanceController._tempOldTier) {
+            var newTier = window.FinanceModel.getTier();
+            this.checkTierUpgrade(window.FinanceController._tempOldTier, newTier);
+        }
+
+        // Faz o emblema de porcentagem piscar após a seta começar a andar
+        var percentGain = window.FinanceController._tempPercentGain || 0;
+        setTimeout(function() {
+            var badge = document.getElementById('finance-thermometer-badge');
+            if (badge) {
+                badge.innerHTML = "+" + percentGain.toFixed(1).replace('.', ',') + "%";
+                badge.style.opacity = "1";
+                
+                // Apaga o emblema sozinho após 4 segundos para manter o visual limpo
+                setTimeout(function() {
+                    badge.style.opacity = "0";
+                }, 4000);
+            }
+        }, 500); // Aguarda meio segundo
+
+        // Limpa a memória para o próximo check-in
+        window.FinanceController._tempOldTier = null;
+        window.FinanceController._tempPercentGain = 0;
     },
 
     deleteTransaction: async function(id) {
