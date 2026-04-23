@@ -83,6 +83,16 @@ window.FinanceView = {
         let percent = (clampedBalance + 2000) / 4000;
         let topPos = (1 - percent) * 100;
 
+        // --- INJEÇÃO FASE 2: MARCAÇÕES DO TERMÔMETRO ---
+        let markersHTML = '';
+        [1500, 1000, 500, 0, -500, -1000, -1500].forEach(val => {
+            let pct = (1 - ((val + 2000) / 4000)) * 100;
+            markersHTML += `
+                <div style="position: absolute; top: ${pct}%; left: -2px; width: 16px; height: 1px; background: rgba(255,255,255,0.3); z-index: 1;"></div>
+                <div style="position: absolute; top: ${pct}%; left: 18px; font-size: 0.55rem; color: #888; transform: translateY(-50%); z-index: 1;">${val}</div>
+            `;
+        });
+
         // Painel Principal (Carteira Livre) com o termômetro embutido
         const balanceCard = document.createElement('div');
         balanceCard.className = 'finance-dashboard-card';
@@ -93,9 +103,14 @@ window.FinanceView = {
                     <div class="finance-balance-value" style="color: ${tier.color};">${this._formatMoney(balance)}</div>
                     <div class="finance-tier-label" style="background: ${tier.color}22; color: ${tier.color};">${tier.label}</div>
                 </div>
-                <div style="position: relative; height: 90px; width: 12px; margin-left: 20px;">
-                    <div style="position: absolute; right: 100%; top: ${topPos}%; transform: translateY(-50%); font-size: 1.1rem; color: #fff; margin-right: 5px;">▶</div>
-                    <div style="width: 100%; height: 100%; border-radius: 6px; background: linear-gradient(to top, var(--fin-tier-divida-profunda) 0%, var(--fin-tier-neutro) 50%, var(--fin-tier-abundancia) 100%);"></div>
+                <div style="position: relative; height: 90px; width: 12px; margin-left: 20px; margin-right: 25px;">
+                    <div id="finance-thermometer-arrow" style="position: absolute; right: 100%; top: ${topPos}%; transform: translateY(-50%); font-size: 1.1rem; color: #fff; margin-right: 5px; transition: top 1.5s ease-out; z-index: 2;">
+                        ▶
+                        <span id="finance-thermometer-badge" style="position: absolute; right: 100%; top: 50%; transform: translateY(-50%); margin-right: 5px; font-size: 0.8rem; background: var(--fin-tier-positivo); color: #000; padding: 2px 6px; border-radius: 4px; opacity: 0; transition: opacity 0.3s; font-weight: bold; pointer-events: none; white-space: nowrap;"></span>
+                    </div>
+                    <div style="width: 100%; height: 100%; border-radius: 6px; background: linear-gradient(to top, var(--fin-tier-divida-profunda) 0%, var(--fin-tier-neutro) 50%, var(--fin-tier-abundancia) 100%); position: relative;">
+                        ${markersHTML}
+                    </div>
                 </div>
             </div>
         `;
@@ -293,7 +308,7 @@ window.FinanceView = {
                     <td style="font-size:0.75rem; color:var(--text-sub); padding:8px 5px; border-bottom:1px solid #333;">${dateStr}</td>
                     <td style="font-size:0.85rem; padding:8px 5px; border-bottom:1px solid #333;"><strong>${t.category}</strong>${pendingBadge}<br><span style="font-size:0.7rem; color:#888;">${t.note}</span></td>
                     <td style="color:${color}; font-weight:bold; text-align:right; padding:8px 5px; border-bottom:1px solid #333;">
-                        ${signal}${this._formatMoney(t.amount)}
+                        ${signal}${this._formatMoney(t.displayAmount !== undefined ? t.displayAmount : t.amount)}
                         <div style="margin-top: 5px; display: flex; justify-content: flex-end; gap: 5px;">
                             <button onclick="window.FinanceController.openEditModal('${t.id}')" style="background:none; border:none; color:#888; font-size:1rem; cursor:pointer;">✏️</button>
                             <button onclick="window.FinanceController.deleteTransaction('${t.id}')" style="background:none; border:none; color:var(--danger-color); font-size:1rem; cursor:pointer;">🗑️</button>
@@ -403,14 +418,14 @@ window.FinanceView = {
             });
         }
 
-        // MODAL UBER
+        // MODAL UBER (INTELIGENTE - FASE 2)
         if (!document.getElementById('modal-finance-uber')) {
             const uberDiv = document.createElement('div');
             uberDiv.id = 'modal-finance-uber';
             uberDiv.className = 'modal-overlay hidden';
             uberDiv.innerHTML = `
                 <div class="modal-content">
-                    <h3 class="gym-modal-title" style="margin-bottom:15px; color: #fff;">🚗 Calculadora Uber</h3>
+                    <h3 class="gym-modal-title" style="margin-bottom:15px; color: #fff;">🚗 Check-in Uber</h3>
                     <form id="form-finance-uber">
                         
                         <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-bottom: 15px;">
@@ -430,47 +445,91 @@ window.FinanceView = {
                             </div>
                         </div>
 
-                        <div style="display:flex; gap:10px; margin-bottom:15px;">
-                            <div style="flex:1;">
+                        <div id="uber-step-1">
+                            <div style="margin-bottom:15px;">
                                 <label style="display:block; color:#aaa; font-size:0.8rem; margin-bottom:5px;">Odômetro Inicial</label>
-                                <input type="number" id="uber-km-start" style="width:100%; padding:10px; border-radius:6px; border:1px solid #444; background:#000; color:#fff;" step="0.1" required>
+                                <input type="number" id="uber-km-start" style="width:100%; padding:10px; border-radius:6px; border:1px solid #444; background:#000; color:#fff;" step="0.1">
                             </div>
-                            <div style="flex:1;">
+                            <div class="modal-actions">
+                                <button type="button" class="secondary-btn" onclick="window.FinanceView.toggleModal('modal-finance-uber', false)">Cancelar</button>
+                                <button type="button" class="primary-btn" onclick="window.FinanceController.startUberSession()">Iniciar Sessão</button>
+                            </div>
+                        </div>
+
+                        <div id="uber-step-2" style="display:none;">
+                            <div style="margin-bottom:15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 6px; text-align: center;">
+                                <span style="color:#aaa; font-size: 0.8rem;">Sessão iniciada no Km: </span>
+                                <strong id="uber-km-start-display" style="color: #fff; font-size: 1.1rem;"></strong>
+                            </div>
+                            
+                            <div style="margin-bottom:15px;">
                                 <label style="display:block; color:#aaa; font-size:0.8rem; margin-bottom:5px;">Odômetro Final</label>
-                                <input type="number" id="uber-km-end" style="width:100%; padding:10px; border-radius:6px; border:1px solid #444; background:#000; color:#fff;" step="0.1" required>
+                                <input type="number" id="uber-km-end" style="width:100%; padding:10px; border-radius:6px; border:1px solid #444; background:#000; color:#fff;" step="0.1">
                             </div>
-                        </div>
 
-                        <div style="margin-bottom:15px;">
-                            <label style="display:block; color:#aaa; font-size:0.8rem; margin-bottom:5px;">Faturamento Bruto (R$)</label>
-                            <input type="number" id="uber-gross-revenue" style="width:100%; padding:10px; border-radius:6px; border:1px solid #444; background:#000; color:#fff;" step="0.01" required placeholder="0,00">
-                        </div>
-
-                        <div style="margin-bottom:15px; background:rgba(255,255,255,0.05); padding:10px; border-radius:8px;">
-                            <label style="display:block; color:#aaa; font-size:0.8rem; margin-bottom:5px;">Forma de Custeio (Gasolina)</label>
-                            <div style="display:flex; gap:10px;">
-                                <label class="checkbox-label" style="flex:1; display:flex; align-items:center; gap:5px; font-size:0.8rem;">
-                                    <input type="radio" name="uber-funding" value="debt" checked> Gerar Dívida
-                                </label>
-                                <label class="checkbox-label" style="flex:1; display:flex; align-items:center; gap:5px; font-size:0.8rem;">
-                                    <input type="radio" name="uber-funding" value="prepaid"> Usar Pré-pago
-                                </label>
+                            <div style="margin-bottom:15px;">
+                                <label style="display:block; color:#aaa; font-size:0.8rem; margin-bottom:5px;">Faturamento Bruto (R$)</label>
+                                <input type="number" id="uber-gross-revenue" style="width:100%; padding:10px; border-radius:6px; border:1px solid #444; background:#000; color:#fff;" step="0.01" placeholder="0,00">
                             </div>
-                        </div>
 
-                        <div class="modal-actions">
-                            <button type="button" class="secondary-btn" onclick="window.FinanceView.toggleModal('modal-finance-uber', false)">Cancelar</button>
-                            <button type="submit" class="primary-btn">Calcular & Salvar</button>
+                            <div style="margin-bottom:15px; background:rgba(255,255,255,0.05); padding:10px; border-radius:8px;">
+                                <label style="display:block; color:#aaa; font-size:0.8rem; margin-bottom:5px;">Forma de Custeio (Gasolina)</label>
+                                <div style="display:flex; gap:10px;">
+                                    <label class="checkbox-label" style="flex:1; display:flex; align-items:center; gap:5px; font-size:0.8rem;">
+                                        <input type="radio" name="uber-funding" value="debt" checked> Gerar Dívida
+                                    </label>
+                                    <label class="checkbox-label" style="flex:1; display:flex; align-items:center; gap:5px; font-size:0.8rem;">
+                                        <input type="radio" name="uber-funding" value="prepaid"> Usar Pré-pago
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="modal-actions">
+                                <button type="button" class="secondary-btn" style="color: #fc8181;" onclick="window.FinanceController.cancelUberSession()">Cancelar Sessão</button>
+                                <button type="button" class="primary-btn" onclick="window.FinanceController.processUberSession()">Finalizar & Salvar</button>
+                            </div>
                         </div>
                     </form>
                 </div>
             `;
             document.body.appendChild(uberDiv);
+        }
 
-            document.getElementById('form-finance-uber').addEventListener('submit', (e) => {
-                e.preventDefault();
-                if (window.FinanceController) window.FinanceController.processUberSession();
-            });
+        // MODAL CELEBRAÇÃO (NOVO - FASE 2)
+        if (!document.getElementById('modal-finance-celebration')) {
+            const celebDiv = document.createElement('div');
+            celebDiv.id = 'modal-finance-celebration';
+            celebDiv.className = 'modal-overlay hidden';
+            celebDiv.innerHTML = `
+                <div class="modal-content" style="text-align: center;">
+                    <h2 style="margin-bottom: 20px; color: #fff;">🏁 Sessão Finalizada!</h2>
+                    
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 20px; margin-bottom: 20px;">
+                        <div style="flex: 1; text-align: right; border-right: 1px solid #333; padding-right: 20px;">
+                            <div style="font-size: 0.8rem; color: #aaa; text-transform: uppercase;">LUCRO LÍQUIDO</div>
+                            <div id="celeb-net-profit" style="font-size: 2.5rem; font-weight: bold; color: var(--fin-tier-positivo);">R$ 0,00</div>
+                        </div>
+                        <div style="flex: 1; text-align: left;">
+                            <div style="font-size: 0.8rem; color: #aaa; text-transform: uppercase;">GASOLINA</div>
+                            <div id="celeb-gas-cost" style="font-size: 1.5rem; font-weight: bold; color: #63b3ed;">R$ 0,00</div>
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-around;">
+                        <div>
+                            <div style="font-size: 0.8rem; color: #888;">Distância</div>
+                            <div id="celeb-distance" style="color: #fff; font-weight: bold;">0 km</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.8rem; color: #888;">Eficiência</div>
+                            <div id="celeb-efficiency" style="color: #fff; font-weight: bold;">R$ 0,00 / km</div>
+                        </div>
+                    </div>
+
+                    <button class="primary-btn" style="width: 100%; font-size: 1.1rem; padding: 15px;" onclick="window.FinanceController.closeCelebration()">Legal!</button>
+                </div>
+            `;
+            document.body.appendChild(celebDiv);
         }
 
         // MODAL EDITAR TRANSAÇÃO
