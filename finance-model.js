@@ -20,6 +20,13 @@ window.FinanceModel = {
                 fuelPrice: 5.50
             };
         }
+        // Injeção Sessão Uber (Fase 1)
+        if (!window.GlobalApp.data.finance.uberSession) {
+            window.GlobalApp.data.finance.uberSession = {
+                active: false,
+                startKm: null
+            };
+        }
         // Injeção Crédito Pré-pago
         if (!window.GlobalApp.data.finance.prepaidCredits) {
             window.GlobalApp.data.finance.prepaidCredits = [];
@@ -52,11 +59,12 @@ window.FinanceModel = {
     /**
      * Adiciona um Ganho (Ex: Uber, Salário)
      */
-    addGain: function(amount, category, note) {
+    addGain: function(amount, category, note, displayAmount) {
         const tx = {
             id: window.GlobalApp.generateUUID(),
             type: 'gain',
             amount: parseFloat(amount),
+            displayAmount: displayAmount !== undefined ? parseFloat(displayAmount) : parseFloat(amount), // Campo Fantasma Fase 1
             category: category,
             note: note || '',
             date: window.GlobalApp.getGameDate(),
@@ -283,13 +291,15 @@ window.FinanceModel = {
 
     /**
      * Avalia o Nível Financeiro atual baseado na Carteira Livre
+     * CIRURGIA FASE 1: Adaptação das linhas do Termômetro (-1500 a 2000)
      */
     getTier: function() {
         const balance = this.getWalletBalance();
         
         // Espectro Negativo (Dívida)
+        if (balance <= -1500) return { id: 'divida_critica', label: 'Dívida Crítica', color: 'var(--fin-tier-divida-profunda)', isPositive: false };
         if (balance <= -1000) return { id: 'divida_profunda', label: 'Dívida Profunda', color: 'var(--fin-tier-divida-profunda)', isPositive: false };
-        if (balance <= -300) return { id: 'divida_media', label: 'Dívida Média', color: 'var(--fin-tier-divida-media)', isPositive: false };
+        if (balance <= -500) return { id: 'divida_media', label: 'Dívida Média', color: 'var(--fin-tier-divida-media)', isPositive: false };
         if (balance < 0) return { id: 'divida_leve', label: 'Levemente no Vermelho', color: 'var(--fin-tier-divida-leve)', isPositive: false };
         
         // Ponto de Equilíbrio
@@ -297,14 +307,41 @@ window.FinanceModel = {
         
         // Espectro Positivo (Saúde Financeira)
         if (balance <= 500) return { id: 'reserva', label: 'Reserva Inicial', color: 'var(--fin-tier-reserva)', isPositive: true };
-        if (balance <= 2000) return { id: 'positivo', label: 'Fluxo Positivo', color: 'var(--fin-tier-positivo)', isPositive: true };
+        if (balance <= 1000) return { id: 'positivo', label: 'Fluxo Positivo', color: 'var(--fin-tier-positivo)', isPositive: true };
+        if (balance <= 1500) return { id: 'crescimento', label: 'Crescimento', color: 'var(--fin-tier-positivo)', isPositive: true };
+        if (balance <= 2000) return { id: 'abundancia', label: 'Abundância', color: 'var(--fin-tier-abundancia)', isPositive: true };
         
-        return { id: 'abundancia', label: 'Abundância', color: 'var(--fin-tier-abundancia)', isPositive: true };
+        return { id: 'liberdade', label: 'Liberdade', color: 'var(--fin-tier-abundancia)', isPositive: true };
     },
 
     // =========================================
     // ODÔMETRO UBER E EDIÇÃO DE TRANSAÇÕES
     // =========================================
+
+    getUberSession: function() {
+        if (!window.GlobalApp.data.finance.uberSession) {
+            window.GlobalApp.data.finance.uberSession = { active: false, startKm: null };
+        }
+        return window.GlobalApp.data.finance.uberSession;
+    },
+
+    startUberSession: function(startKm) {
+        if (!window.GlobalApp.data.finance.uberSession) {
+            window.GlobalApp.data.finance.uberSession = { active: false, startKm: null };
+        }
+        window.GlobalApp.data.finance.uberSession.active = true;
+        window.GlobalApp.data.finance.uberSession.startKm = parseFloat(startKm);
+        window.GlobalApp.saveData();
+    },
+
+    clearUberSession: function() {
+        if (!window.GlobalApp.data.finance.uberSession) {
+            window.GlobalApp.data.finance.uberSession = { active: false, startKm: null };
+        }
+        window.GlobalApp.data.finance.uberSession.active = false;
+        window.GlobalApp.data.finance.uberSession.startKm = null;
+        window.GlobalApp.saveData();
+    },
 
     getUberSettings: function() {
         if (!window.GlobalApp.data.finance.uberSettings) {
