@@ -1,9 +1,11 @@
 /**
  * HABITS-CONTROLLER.JS
  * Controlador de Interações da Tela de Hábitos.
- * VERSÃO: V5.9.11 - MATH CORRECTION
- * Alterações: Ajuste fino nas fórmulas matemáticas de Foco (Tabela de Fluxo)
- * e Início/Fim do Dia (Fator Fixo 1.2x).
+ * VERSÃO: V6.0 - LEAN EDITION (SEM XP)
+ * Alterações: Removida toda a matemática de XP (calculateMasterXP), o widget de
+ * "Nota Fiscal" (Auditor), o buff de Resiliência e o Bônus de Sinergia — todos
+ * eram mecanismos exclusivos de recompensa. Mantidos: CRUD de hábitos, streak,
+ * contadores, cronômetro (timer) e agendamento por frequência/padrão.
  */
 
 window.HabitManager = {
@@ -15,10 +17,6 @@ window.HabitManager = {
     timerState: {
         habitId: null, startTime: null, accumulatedBefore: 0, 
         intervalId: null, isPaused: false
-    },
-
-    resilienceState: {
-        activeUntil: 0, value: 1.0      
     },
 
     init: function() {
@@ -40,15 +38,6 @@ window.HabitManager = {
             this.handleNavigationChange(e.detail.app);
         });
 
-        document.addEventListener('keydown', (e) => {
-            if (e.altKey && e.key.toLowerCase() === 'a') {
-                if (window.HabitView && window.HabitView.toggleAuditWidget) {
-                    window.HabitView.toggleAuditWidget();
-                    if (window.SoundManager) window.SoundManager.play('click');
-                }
-            }
-        });
-
         this.setupUIBinds();
     },
 
@@ -58,7 +47,6 @@ window.HabitManager = {
 
         this.ensureIntegrity();
         this.enforceStrictStreak();
-        this.checkResilience(); 
         this.render();
         this.restoreActiveTimer();
     },
@@ -118,7 +106,6 @@ window.HabitManager = {
         const type = document.getElementById('habit-type').value; 
         const target = parseInt(document.getElementById('habit-target-count').value) || 1;
         const groupId = document.getElementById('habit-group-select').value || null;
-        const milestoneType = document.getElementById('habit-milestone-type').value;
 
         const freqTypeRadio = document.querySelector('input[name="freqType"]:checked');
         const freqType = freqTypeRadio ? freqTypeRadio.value : 'weekly';
@@ -127,30 +114,8 @@ window.HabitManager = {
         const finalOffset = Math.max(0, offsetInput - 1);
         const isDependent = document.getElementById('habit-is-dependent') ? document.getElementById('habit-is-dependent').checked : false;
 
-        const importanceRadio = document.querySelector('input[name="importance"]:checked');
-        const importance = importanceRadio ? importanceRadio.value : 'development';
-
-        const emotionalCheck = document.getElementById('habit-emotional-factor');
-        const emotionalFactor = emotionalCheck ? emotionalCheck.checked : false;
-        const emotionalValueEl = document.getElementById('habit-emotional-value');
-        const emotionalValue = emotionalValueEl ? parseFloat(emotionalValueEl.value) : 0.1;
-
-        const cognitiveCheck = document.getElementById('habit-cognitive-fatigue');
-        const cognitiveFatigue = cognitiveCheck ? cognitiveCheck.checked : false;
-
-        const startEndCheck = document.getElementById('habit-start-end');
-        const startEndEffect = startEndCheck ? startEndCheck.checked : false;
-        // Indices removidos da lógica, mas mantemos leitura para limpar se existir algo
-        const startEndIndices = []; 
-
         const conductCheck = document.getElementById('habit-conduct');
         const conduct = conductCheck ? conductCheck.checked : false;
-
-        const focusCheck = document.getElementById('habit-focus');
-        const focus = focusCheck ? focusCheck.checked : false;
-
-        const adaptCheck = document.getElementById('habit-adaptation-active');
-        const adaptationActive = adaptCheck ? adaptCheck.checked : false;
 
         let freq = [];
         document.querySelectorAll('.days-selector input:checked').forEach(cb => freq.push(cb.value));
@@ -159,24 +124,17 @@ window.HabitManager = {
         if (freqType === 'weekly' && freq.length === 0 && !isDependent) { alert("Selecione os dias."); return; }
         
         this.saveHabit(
-            id, name, type, target, groupId, freqType, freq, patternVal, finalOffset, isDependent,
-            importance, emotionalFactor, emotionalValue, cognitiveFatigue,
-            startEndEffect, startEndIndices, conduct,
-            focus, adaptationActive, milestoneType
+            id, name, type, target, groupId, freqType, freq, patternVal, finalOffset, isDependent, conduct
         );
     },
 
-    saveHabit: function(id, name, type, target, groupId, frequencyType, frequencyDays, patternVal, patternOffset, isDependent, importance, emotionalFactor, emotionalValue, cognitiveFatigue, startEndEffect, startEndIndices, conduct, focus, adaptationActive, milestoneType) {
+    saveHabit: function(id, name, type, target, groupId, frequencyType, frequencyDays, patternVal, patternOffset, isDependent, conduct) {
         
         const habitData = {
-            name, type, target, groupId, milestoneType,
+            name, type, target, groupId,
             frequencyType, frequency: frequencyDays,
             pattern: patternVal, patternOffset, isDependent: !!isDependent,
-            importance, emotionalFactor, emotionalValue, cognitiveFatigue,
-            startEndEffect, startEndIndices, conduct,
-            focus, 
-            adaptationActive: !!adaptationActive,
-            abstinence: false, abstinenceStages: [], focusStages: [] 
+            conduct
         };
 
         if (id) {
@@ -186,8 +144,8 @@ window.HabitManager = {
             const newHabit = {
                 id: window.GlobalApp.generateUUID(),
                 currentOfDay: 0, completedToday: false, streak: 0, lastDone: null,
-                milestonesClaimed: [], totalCount: 0, accumulatedTime: 0, xp: 0, 
-                opportunityToday: false, dailySessionCount: 0, adaptationProgress: 1, 
+                totalCount: 0, accumulatedTime: 0,
+                opportunityToday: false, dailySessionCount: 0,
                 createdAt: new Date().toISOString(),
                 ...habitData
             };
@@ -202,129 +160,6 @@ window.HabitManager = {
         this.render();
     },
 
-    // --- CÁLCULO DE XP (MATEMÁTICA CORRIGIDA) ---
-    calculateMasterXP: function(habit, context = {}) {
-        const xpData = window.GlobalApp.data.xp;
-        const userLevel = (xpData && xpData.level) ? xpData.level : 1;
-        const BaseValue = userLevel * 100;
-        
-        let K = 0.5; 
-        if (habit.importance === 'critical') K = 1.0;
-
-        let V = 0; 
-        let M_foc = 1.0; 
-        let vReason = "Padrão";
-        let minutes = 0;
-
-        // 1. Duração Base
-        if (context.durationSeconds) minutes = context.durationSeconds / 60;
-        else if (context.durationMinutes) minutes = context.durationMinutes;
-        else minutes = 5; 
-
-        // 2. Volume (Horas)
-        V = minutes / 60;
-        vReason = `${Math.floor(minutes)}m`;
-        
-        // 3. Lógica de Foco (TABELA DE FLUXO)
-        if (habit.focus) {
-            // Tabela:
-            // 00-09 min: 1.0x
-            // 10-19 min: 1.1x
-            // ...
-            // 90+ min: 1.9x (Cap Máximo)
-            
-            if (minutes < 10) {
-                M_foc = 1.0;
-            } else {
-                // Math.floor(minutes / 10) retorna quantas dezenas completas existem.
-                // Ex: 15min -> 1 dezena -> 1 * 0.1 = +0.1
-                const tenMinBlocks = Math.floor(minutes / 10);
-                M_foc = 1.0 + (tenMinBlocks * 0.1);
-                
-                // Teto de 1.9x (Deep Work/Cap Máximo)
-                if (M_foc > 1.9) M_foc = 1.9;
-            }
-            vReason += ` (Foco ${M_foc.toFixed(1)}x)`;
-        }
-
-        // Overrides
-        if (habit.conduct) {
-            const index = context.conductIndex || 0;
-            const weights = [0.30, 0.25, 0.45]; 
-            V = weights[index] || 0.25;
-            vReason = ["Manhã", "Tarde", "Noite"][index];
-        } 
-        else if (habit.emotionalFactor) {
-            V = habit.emotionalValue || 0.1;
-            vReason = "Impulso";
-        }
-
-        const ActionValue = BaseValue * K * V;
-        
-        // Multiplicadores Padrão
-        const streakBonus = Math.min((habit.streak || 0), 30) * 0.01666;
-        const M_con = 1.0 + streakBonus;
-
-        let M_fat = 1.0;
-        let fatBonusMsg = "";
-        if (habit.cognitiveFatigue) {
-            const session = (habit.dailySessionCount || 0) + 1;
-            if (session === 2) M_fat = 1.1;
-            else if (session === 3) M_fat = 1.25;
-            else if (session >= 4) {
-                M_fat = 1.45;
-                if (session === 4) fatBonusMsg = "+"; 
-            }
-        }
-
-        let M_res = 1.0;
-        this.checkResilience();
-        if (Date.now() < this.resilienceState.activeUntil) {
-            M_res = this.resilienceState.value;
-        }
-
-        // 4. Lógica de Início/Fim do Dia (SIMPLIFICADA)
-        // Se a caixa estiver marcada, ganha 1.2x (20% fixo)
-        let M_hor = 1.0;
-        if (habit.startEndEffect) {
-            M_hor = 1.2;
-        }
-
-        let M_ada = 1.0;
-        const currentDay = habit.adaptationProgress || 1;
-        if (habit.adaptationActive && currentDay <= 21) {
-            M_ada = 1.5 - (0.5 * (currentDay / 21));
-            if (M_ada < 1.0) M_ada = 1.0;
-        }
-
-        let FinalXP = ActionValue * M_foc * M_con * M_fat * M_res * M_hor * M_ada;
-        if (fatBonusMsg) FinalXP = FinalXP * 1.2;
-
-        if (habit.emotionalFactor) {
-            const buffVal = 1 + (habit.emotionalValue || 0.1);
-            this.resilienceState = { activeUntil: Date.now() + (4 * 3600 * 1000), value: buffVal };
-        }
-
-        const RoundedXP = parseFloat(FinalXP.toFixed(1));
-
-        const auditData = {
-            level: userLevel, baseRaw: BaseValue, k: K, v: V.toFixed(3),
-            drag: M_foc.toFixed(2), streak: M_con.toFixed(2), fatigue: M_fat,
-            resilience: M_res, time: M_hor, adapt: M_ada.toFixed(2), adaptDay: currentDay,
-            actionValue: ActionValue.toFixed(1)
-        };
-
-        if (window.HabitView && window.HabitView.updateAuditWidget) {
-            window.HabitView.updateAuditWidget(habit.name, RoundedXP, auditData);
-        }
-
-        return {
-            xp: Math.max(0.1, RoundedXP),
-            log: `${habit.name} ${vReason}`,
-            auditData: auditData
-        };
-    },
-
     // --- ACTIONS ---
 
     toggleCheck: function(id) {
@@ -333,7 +168,7 @@ window.HabitManager = {
 
         if (habit.completedToday) {
             if (window.SoundManager) window.SoundManager.play('click');
-            if (confirm("Desmarcar hábito e estornar XP ganho?")) {
+            if (confirm("Desmarcar hábito?")) {
                 this._undoCompletion(habit);
             }
             return;
@@ -348,18 +183,11 @@ window.HabitManager = {
             }
         }
 
-        let calculationContext = { currentStep: 1 };
         if (habit.accumulatedTime && habit.accumulatedTime > 0) {
-            calculationContext.durationSeconds = habit.accumulatedTime;
             habit.accumulatedTime = 0; 
         }
 
-        const mathResult = this.calculateMasterXP(habit, calculationContext);
         habit.dailySessionCount = (habit.dailySessionCount || 0) + 1;
-        
-        if (window.XPManager) {
-            window.XPManager.gainXP(mathResult.xp, mathResult.log, { streak: habit.streak, habitId: habit.id });
-        }
 
         this._completeHabit(habit);
     },
@@ -387,26 +215,15 @@ window.HabitManager = {
         if (habit.type === 'counter' && newVal > habit.target) newVal = habit.target;
 
         if (delta > 0 && newVal > (habit.currentOfDay || 0)) {
-            let xpContext = { currentStep: newVal };
-            
             if (habit.accumulatedTime && habit.accumulatedTime > 0) {
-                xpContext.durationSeconds = habit.accumulatedTime;
                 habit.accumulatedTime = 0; 
             }
 
-            const mathResult = this.calculateMasterXP(habit, xpContext);
             habit.dailySessionCount = (habit.dailySessionCount || 0) + 1;
-            
+
             if (habit.type === 'infinite' && habit.currentOfDay === 0) {
                  habit.streak = (habit.streak || 0) + 1;
                  habit.lastDone = window.GlobalApp.formatDate(new Date());
-            }
-
-            let logSuffix = `(${newVal}/${habit.target})`;
-            if (habit.type === 'infinite') logSuffix = `(+1)`;
-            
-            if(window.XPManager) {
-                window.XPManager.gainXP(mathResult.xp, `${habit.name} ${logSuffix}`, { streak: habit.streak, habitId: habit.id });
             }
         }
 
@@ -430,12 +247,8 @@ window.HabitManager = {
         habit.conductCompleted[index] = !wasChecked;
         
         if (!wasChecked) {
-            const mathResult = this.calculateMasterXP(habit, { conductIndex: index, currentStep: index + 1 });
             habit.dailySessionCount = (habit.dailySessionCount || 0) + 1;
-            if(window.XPManager) {
-                window.XPManager.gainXP(mathResult.xp, mathResult.log, { streak: habit.streak, habitId: habit.id });
-            }
-            
+
             const allCompleted = habit.conductCompleted[0] && habit.conductCompleted[1] && habit.conductCompleted[2];
             if (allCompleted && !habit.completedToday) this._completeHabit(habit);
         }
@@ -450,31 +263,15 @@ window.HabitManager = {
         if (habit.lastDone !== today) {
             habit.streak = (habit.streak || 0) + 1;
             habit.lastDone = today;
-            
-            if (habit.adaptationActive) {
-                if (typeof habit.adaptationProgress === 'undefined') habit.adaptationProgress = 1;
-                habit.adaptationProgress++;
-            }
         }
         
         if (!habit.totalCount) habit.totalCount = 0;
         habit.totalCount += 1;
 
-        if (window.SoundManager) window.SoundManager.play('xp');
-
-        if (window.HabitModel && window.HabitModel.checkAndGetMilestoneXP) {
-            const milestoneData = window.HabitModel.checkAndGetMilestoneXP(habit);
-            if (milestoneData) {
-                const msg = `🏆 MARCO: ${milestoneData.targets.join(', ')} ${milestoneData.type === 'streak' ? 'Dias' : 'Ações'}!`;
-                if(window.XPManager) {
-                    window.XPManager.gainXP(milestoneData.xp, `${habit.name} - ${msg}`, { isMilestone: true, habitId: habit.id });
-                }
-            }
-        }
+        if (window.SoundManager) window.SoundManager.play('click');
         
         window.GlobalApp.saveData();
         this.render();
-        this.checkSynergyBonus();
     },
 
     _undoCompletion: function(habit) {
@@ -483,54 +280,8 @@ window.HabitManager = {
         if (habit.streak > 0) habit.streak--;
         if (habit.totalCount > 0) habit.totalCount--;
 
-        const estimate = this.calculateMasterXP(habit, {});
-        if(window.XPManager) {
-            window.XPManager.gainXP(-estimate.xp, `Desfeito: ${habit.name}`, { forceFlat: true });
-        }
-
         window.GlobalApp.saveData();
         this.render();
-    },
-
-    checkSynergyBonus: function() {
-        const today = window.GlobalApp.formatDate(new Date());
-        const dayOfWeekStr = new Date().getDay().toString();
-        
-        const activeHabitsToday = window.GlobalApp.data.habits.filter(h => {
-            if (h.frequencyType === 'weekly' || !h.frequencyType) {
-                return h.frequency && h.frequency.includes(dayOfWeekStr);
-            }
-            if (h.frequencyType === 'pattern' && h.pattern && window.HabitModel && window.HabitModel.getPatternStep) {
-                const step = window.HabitModel.getPatternStep(h);
-                return h.pattern[step] !== '0'; 
-            }
-            return false;
-        });
-
-        const allDone = activeHabitsToday.length > 0 && activeHabitsToday.every(h => h.completedToday);
-
-        if (allDone) {
-            const history = window.GlobalApp.data.xp.history || [];
-            const todayXP = history
-                .filter(log => log.date === today)
-                .reduce((sum, log) => sum + (log.amount || 0), 0);
-            
-            const habitCount = activeHabitsToday.length;
-            const synergyFactor = habitCount * 0.01; 
-            const bonusXP = parseFloat((todayXP * synergyFactor).toFixed(1));
-
-            if (bonusXP > 0) {
-                setTimeout(() => {
-                    if (window.SoundManager) window.SoundManager.play('chest'); 
-                    if(window.XPManager) {
-                        window.XPManager.gainXP(bonusXP, "Sinergia Completa", { isMilestone: true });
-                    }
-                    if (window.SysModal && window.SysModal.alert) {
-                        window.SysModal.alert(`⚡ SINERGIA! Todos os ${habitCount} hábitos feitos. Bônus: +${bonusXP} XP`);
-                    }
-                }, 1200);
-            }
-        }
     },
 
     // --- TIMER ---
@@ -620,10 +371,6 @@ window.HabitManager = {
         if (habit) {
             const totalSeconds = this.timerState.accumulatedBefore;
             if (totalSeconds > 10) { 
-                const mathResult = this.calculateMasterXP(habit, { durationSeconds: totalSeconds });
-                if(window.XPManager) {
-                    window.XPManager.gainXP(mathResult.xp, `${mathResult.log} (Timer)`, { streak: habit.streak, habitId: habit.id });
-                }
                 habit.dailySessionCount = (habit.dailySessionCount || 0) + 1;
                 habit.accumulatedTime = 0; 
             } else {
@@ -714,18 +461,6 @@ window.HabitManager = {
                 window.GlobalApp.saveData();
                 this.render();
             }
-        }
-    },
-
-    activateResilienceBuff: function(durationMinutes, multiplier) {
-        this.resilienceState.activeUntil = Date.now() + (durationMinutes * 60 * 1000);
-        this.resilienceState.value = multiplier;
-        console.log(`Buff ativado! Multiplicador ${multiplier}x por ${durationMinutes}min.`);
-    },
-
-    checkResilience: function() {
-        if (Date.now() > this.resilienceState.activeUntil) {
-            this.resilienceState.value = 1.0; 
         }
     },
 
