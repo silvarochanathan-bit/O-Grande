@@ -10,7 +10,7 @@
     --accent-color: #7c4dff; /* Roxo vibrante */
     --accent-hover: #651fff;
     
-    --success-color: #00e676; /* Verde neon para XP/Sucesso */
+    --success-color: #00e676; /* Verde neon para Sucesso */
     --danger-color: #ff5252;
     --warning-color: #ffab00;
     
@@ -34,7 +34,7 @@
     /* Z-Index (Hierarquia Organizada) */
     --z-background: 0;
     --z-content: 10;
-    --z-header: 100;    /* Barra de XP Fixa */
+    --z-header: 100;    /* Reservado para elementos fixos no topo */
     --z-nav: 90;        /* Menu de abas (se fixo) */
     --z-floating: 500;  /* Cronômetros flutuantes */
     --z-overlay: 1000;  /* Overlays de feedback */
@@ -61,7 +61,6 @@ body {
     background-color: var(--bg-main);
     color: var(--text-primary);
     line-height: 1.6;
-    padding-top: 70px; /* Espaço para o header fixo */
     min-height: 100vh;
 }
 
@@ -171,81 +170,6 @@ body[data-current-app="hub"] #main-nav { display: none; }
 .hub-card[data-app="finance"] .hub-icon { color: #ffd600; }
 
 /* ==========================================================================
-   CABEÇALHO FIXO (XP) - FLEXÍVEL
-   ========================================================================== */
-header#main-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 70px;
-    background-color: rgba(30, 30, 30, 0.95);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    align-items: center; /* Centraliza verticalmente */
-    padding: 0 15px;
-    z-index: var(--z-header);
-    gap: 15px;
-}
-
-.level-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-width: 50px;
-}
-
-.level-label {
-    font-size: 0.65rem;
-    color: var(--accent-color);
-    text-transform: uppercase;
-    font-weight: bold;
-    line-height: 1;
-}
-
-#current-level {
-    font-size: 1.4rem;
-    font-weight: 800;
-    color: #fff;
-    line-height: 1;
-    text-shadow: 0 0 10px var(--accent-color);
-}
-
-.xp-bar-container {
-    flex-grow: 1;
-    height: 18px;
-    background-color: #000;
-    border-radius: 9px;
-    position: relative;
-    overflow: hidden;
-    border: 1px solid #333;
-}
-
-.xp-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--accent-color), #00e676);
-    width: 0%;
-    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 0 10px rgba(0, 230, 118, 0.4);
-}
-
-#xp-text {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.7rem;
-    font-weight: bold;
-    color: #fff;
-    text-shadow: 0 1px 2px #000;
-    z-index: 2;
-    white-space: nowrap;
-}
-
-/* ==========================================================================
    NAVEGAÇÃO (PRODUTIVIDADE) - OTIMIZADA
    ========================================================================== */
 nav#main-nav {
@@ -282,7 +206,7 @@ nav#main-nav::-webkit-scrollbar { display: none; } /* Chrome/Safari */
     box-shadow: inset 0 0 0 1px rgba(124, 77, 255, 0.3);
 }
 
-/* Botão de Voltar ao Hub (e Audit) */
+/* Botão de Voltar ao Hub */
 .btn-back-hub {
     position: fixed;
     bottom: 20px;
@@ -378,25 +302,6 @@ button {
     color: var(--text-secondary);
     padding: 8px 16px;
     border-radius: var(--border-radius);
-}
-
-.claim-btn {
-    background-color: var(--success-color);
-    color: #000;
-    font-size: 1.2rem;
-    padding: 15px 40px;
-    border: none;
-    border-radius: 50px;
-    font-weight: 900;
-    margin-top: 20px;
-    box-shadow: 0 0 15px var(--success-color);
-    animation: pulseButton 1.5s infinite;
-}
-
-@keyframes pulseButton {
-    0% { transform: scale(1); box-shadow: 0 0 15px var(--success-color); }
-    50% { transform: scale(1.05); box-shadow: 0 0 25px var(--success-color); }
-    100% { transform: scale(1); box-shadow: 0 0 15px var(--success-color); }
 }
 
 /* ==========================================================================
@@ -549,84 +454,6 @@ label {
 }
 
 /* ==========================================================================
-   WIDGET DE AUDITORIA (NOTA FISCAL)
-   ========================================================================== */
-#xp-audit-widget {
-    position: relative; /* Padrão Mobile: Fluxo normal (Rodapé) */
-    width: 90%;
-    margin: 20px auto;
-    margin-bottom: 120px; /* Garante que não fique escondido atrás dos botões fixos */
-    max-height: none; /* Permite crescer conforme o conteúdo */
-    background-color: rgba(30, 30, 30, 0.98);
-    border: 1px solid var(--accent-color);
-    border-radius: 12px;
-    padding: 15px;
-    z-index: var(--z-overlay);
-    overflow-y: visible; /* Remove scroll interno no mobile */
-    box-shadow: 0 -5px 25px rgba(0,0,0,0.5);
-    backdrop-filter: blur(10px);
-    display: none; /* Controlado via JS e classe hidden */
-    flex-direction: column;
-    gap: 10px;
-    animation: slideUp 0.3s ease-out;
-}
-
-#xp-audit-widget:not(.hidden) {
-    display: flex;
-}
-
-#xp-audit-widget h4 {
-    color: var(--accent-color);
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    padding-bottom: 8px;
-    margin-bottom: 5px;
-    letter-spacing: 1px;
-}
-
-/* Itens da Nota Fiscal */
-.audit-item {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    padding: 4px 0;
-    border-bottom: 1px dashed rgba(255,255,255,0.05);
-}
-
-.audit-item strong {
-    color: var(--text-primary);
-}
-
-.audit-total {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 2px solid var(--border-color);
-    display: flex;
-    justify-content: space-between;
-    font-weight: bold;
-    color: var(--success-color);
-    font-size: 1rem;
-}
-
-/* Animações */
-@keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
-@keyframes slideInRight {
-    from { transform: translateX(20px); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
-
-/* Padding Body Helper (Mobile) - Evita sobreposição (Desativado no novo modelo relativo) */
-/* body.audit-active .app-internal-container {
-    padding-bottom: 400px;
-} */
-
-/* ==========================================================================
    MEDIA QUERIES (DESKTOP)
    ========================================================================== */
 @media (min-width: 768px) {
@@ -650,31 +477,6 @@ label {
     .primary-btn, .secondary-btn, .action-btn {
         width: auto;
         flex: initial;
-    }
-
-    /* Header com mais respiro */
-    header#main-header {
-        padding: 0 30px;
-    }
-
-    /* Widget Desktop: Canto superior direito (Volta a ser Fixo) */
-    #xp-audit-widget {
-        position: fixed;
-        margin: 0; /* Reseta margem mobile */
-        bottom: auto;
-        top: 80px;
-        left: auto;
-        right: 20px;
-        width: 320px;
-        max-height: 80vh;
-        overflow-y: auto; /* Restaura scroll interno se necessário */
-        box-shadow: 0 5px 25px rgba(0,0,0,0.5);
-        animation: slideInRight 0.3s ease-out;
-    }
-
-    /* Remove padding excessivo no desktop, pois o widget está na lateral */
-    body.audit-active .app-internal-container {
-        padding-bottom: 30px;
     }
 }
 
