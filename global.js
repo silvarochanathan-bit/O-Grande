@@ -1,65 +1,46 @@
 /**
  * GLOBAL.JS
  * Gerenciamento de estado, persistência e Roteamento do Super App.
- * VERSÃO: V7.0 - FINANCIAL CONTROL
- * Alterações: Introdução do conceito de "Dia do Jogo" vs "Dia Real".
+ * VERSÃO: V8.0 - LEAN EDITION (SEM XP / SEM RECOMPENSAS)
+ * Alterações: Removida toda a lógica de XP, Nível, Carteira (Wallet) e Baús.
+ * Mantido o conceito de "Dia do Jogo" vs "Dia Real" para Hábitos, Dieta e Academia.
  * O dia só vira automaticamente após 12:00 (meio-dia). Antes disso, é necessário
  * ação manual do usuário ("Virar o Dia") para consolidar os dados.
- * Módulo de Finanças adicionado ao DEFAULT_STATE e validApps.
  */
 
 const STORAGE_KEY = 'SITE_C_MASTER_DATA';
 
 const DEFAULT_STATE = {
-    // Estado Global (Compartilhado)
-    xp: { current: 0, total: 0, level: 1, history: [], blocked: false },
-    wallet: {
-        daily: { current: 0, gainedToday: 0, max: 9 },
-        weekend: { current: 0, max: 30 },
-        crystals: { current: 0 },
-        consumption: {
-            movies:    { label: 'Filme',     used: 0, limit: 1 },
-            series:    { label: 'Série',     used: 0, limit: 3 },
-            youtube:   { label: 'YouTube',   used: 0, limit: 2 },
-            instagram: { label: 'Instagram', used: 0, limit: 1 },
-            books:     { label: 'Leitura',   used: 0, limit: 99 },
-            general:   { label: 'Outros',    used: 0, limit: 5 }
-        }
-    },
-    
     // Controle de Navegação
     navigation: { 
         currentApp: 'hub' // 'hub', 'productivity', 'gym', 'diet', 'finance'
     },
 
-    // Módulo 1: Produtividade (Legado)
+    // Módulo 1: Produtividade
     habits: [],
     habitGroups: [],
     tasks: [],
-    chests: [],
-    rewards: [],
-    executedTasks: [],
+    tasksHistory: [],
     activeTimer: null, // Campo adicionado para persistência do cronômetro
 
-    // Módulo 2: Academia (Novo)
+    // Módulo 2: Academia
     gym: {
         routines: [], // Treinos montados (A, B, C...)
         history: [],  // Logs de treino
-        exercises: [], // Banco de exercícios
-        userExercises: [], // (Compatibilidade V57)
-        xpLogs: [],    // (Compatibilidade V57)
-        prs: {},       // (Compatibilidade V57)
+        userExercises: [], // Banco de exercícios do usuário
+        prs: {},       // Recordes pessoais
         activeSession: null
     },
 
-    // Módulo 3: Dieta (Novo)
+    // Módulo 3: Dieta
     diet: {
         meals: [],    // Refeições planejadas
         history: [],  // Logs de alimentação
+        dayHistory: [], // Arquivo de resumos diários (sem XP)
         water: { current: 0, target: 3000 }
     },
 
-    // Módulo 4: Controle Financeiro (Novo)
+    // Módulo 4: Controle Financeiro
     finance: {
         transactions: [],
         pendingDebts: []
@@ -69,21 +50,17 @@ const DEFAULT_STATE = {
     settings: {
         backupUrl: "",
         sounds: {
-            click: { url: null, volume: 50 },
-            xp: { url: null, volume: 50 },
-            levelup: { url: null, volume: 50 },
-            chest: { url: null, volume: 50 },
-            coin: { url: null, volume: 50 }
+            click: { url: null, volume: 50 }
         }
     },
     
-    // Metadados (Novo para controle de reset e backup)
+    // Metadados (Controle de reset e backup)
     meta: { 
         lastActiveDate: null, 
         backupUrl: "" // Link do Google Drive
     },
     lastLogin: null,
-    lastGameDate: null // Novo: Controla a data "lógica" do jogo
+    lastGameDate: null // Controla a data "lógica" do jogo
 };
 
 // --- SISTEMA DE MODAIS ---
@@ -162,7 +139,7 @@ window.GlobalApp = {
             
             this.ensureIntegrity();
             this.isSafeToSave = true;
-            this.checkForDailyReset(); // Substitui processDailyRollover pela nova função lógica
+            this.checkForDailyReset();
             this.renderTurnDayButton(); // Injeta botão de virada manual
             
             // Listener de Visibilidade (Reset Automático Anti-Insônia)
@@ -173,8 +150,6 @@ window.GlobalApp = {
                 }
             });
 
-            // Aplica navegação inicial baseada no estado salvo (ou volta pro Hub se preferir)
-            // this.applyNavigation(this.data.navigation.currentApp);
             this.navigate('hub'); 
 
         } catch (e) {
@@ -189,15 +164,11 @@ window.GlobalApp = {
         if (!this.data) return;
         
         // Arrays básicos
-        ['habits', 'habitGroups', 'tasks', 'chests', 'rewards', 'executedTasks'].forEach(arr => {
+        ['habits', 'habitGroups', 'tasks', 'tasksHistory'].forEach(arr => {
             if (!Array.isArray(this.data[arr])) this.data[arr] = [];
         });
 
-        // Carteira
-        if (!this.data.wallet) this.data.wallet = {};
-        this.data.wallet = this.mergeDeep(JSON.parse(JSON.stringify(DEFAULT_STATE.wallet)), this.data.wallet);
-
-        // Novos Módulos (Garante que existam em saves antigos)
+        // Módulos (Garante que existam em saves antigos)
         if (!this.data.gym) this.data.gym = JSON.parse(JSON.stringify(DEFAULT_STATE.gym));
         if (!this.data.diet) this.data.diet = JSON.parse(JSON.stringify(DEFAULT_STATE.diet));
         if (!this.data.finance) this.data.finance = JSON.parse(JSON.stringify(DEFAULT_STATE.finance));
@@ -207,6 +178,13 @@ window.GlobalApp = {
         if (!this.data.meta) this.data.meta = JSON.parse(JSON.stringify(DEFAULT_STATE.meta));
 
         if (!this.data.settings) this.data.settings = {};
+
+        // Limpeza de módulos removidos (XP / Wallet / Baús) em saves antigos
+        delete this.data.xp;
+        delete this.data.wallet;
+        delete this.data.chests;
+        delete this.data.rewards;
+        delete this.data.executedTasks;
     },
 
     saveData: function() {
@@ -279,8 +257,7 @@ window.GlobalApp = {
             // Ainda é "madrugada" do dia de jogo anterior
             return savedGameDate;
         } else {
-            // Passou do limite, o dia vira automaticamente (Castigo/Limite)
-            // Atualizamos o lastGameDate para não ficar inconsistente no próximo save
+            // Passou do limite, o dia vira automaticamente
             if (this.data.lastGameDate !== realDateStr) {
                 console.log("[GlobalApp] Auto-Turn: Passou de 12:00, virando dia automaticamente.");
                 this.data.lastGameDate = realDateStr;
@@ -317,9 +294,6 @@ window.GlobalApp = {
         const savedGameDate = this.data.lastGameDate;
         const currentHour = now.getHours();
 
-        // LOG DE SEGURANÇA / DIAGNÓSTICO
-        console.log(`[GlobalApp] TurnButton Check: Saved=${savedGameDate} vs Real=${realDateStr} | Hour=${currentHour}`);
-
         // Só mostra se as datas diferem E for antes de meio dia (senão vira auto)
         if (savedGameDate !== realDateStr && currentHour < 12) {
             const btn = document.createElement('button');
@@ -335,7 +309,7 @@ window.GlobalApp = {
 
     /**
      * Orquestrador de Reset Diário
-     * Agora usa getGameDate() em vez de new Date() direto.
+     * Usa getGameDate() para respeitar a regra das 12h.
      */
     checkForDailyReset: function() {
         if (!this.isSafeToSave) return;
@@ -345,72 +319,26 @@ window.GlobalApp = {
 
         if (lastLogin !== gameDate) {
             console.log(`[GlobalApp] Reset Diário Detectado: ${lastLogin} -> ${gameDate}`);
-            
-            // 1. Reset da Carteira (Slots e Consumo)
-            this.data.wallet.daily.gainedToday = 0;
-            for (const key in this.data.wallet.consumption) {
-                if(this.data.wallet.consumption[key]) this.data.wallet.consumption[key].used = 0;
-            }
 
-            // Lógica Carteira (Semanal vs Diário)
-            // Precisa parsear gameDate para saber o dia da semana
-            const parts = gameDate.split('-');
-            // new Date(y, m-1, d)
-            const dateObj = new Date(parts[0], parts[1]-1, parts[2]);
-            const dayOfWeek = dateObj.getDay(); 
-            
-            if (dayOfWeek === 1) { // Segunda-feira
-                const needed = 2;
-                const available = this.data.wallet.weekend.current;
-                if (available >= needed) {
-                    this.data.wallet.weekend.current -= needed;
-                    this.data.wallet.daily.current = needed;
-                } else {
-                    this.data.wallet.daily.current = available;
-                    this.data.wallet.weekend.current = 0;
-                }
-            } else {
-                const current = this.data.wallet.daily.current;
-                if (current > 2) {
-                    const overflow = current - 2;
-                    this.data.wallet.daily.current = 2;
-                    this.data.wallet.weekend.current += overflow;
-                }
-            }
-
-            // Cristais (Excedente FDS)
-            const wMax = 30;
-            if (this.data.wallet.weekend.current > wMax) {
-                const excess = this.data.wallet.weekend.current - wMax;
-                const crystals = Math.floor(excess / 3);
-                const remainder = excess % 3;
-                if (crystals > 0) {
-                    this.data.wallet.crystals.current += crystals;
-                    this.data.wallet.weekend.current = wMax + remainder;
-                    alert(`💎 Rollover: +${crystals} Cristais (Excedente FDS)!`);
-                }
-            }
-            
-            // 2. Reset de Água (Dieta)
+            // 1. Reset de Água (Dieta)
             if (this.data.diet && this.data.diet.water) {
                 this.data.diet.water.current = 0;
             }
 
-            // 3. Orquestra Resets de Módulos Externos (Se existirem)
+            // 2. Orquestra Resets de Módulos Externos (Se existirem)
             // HabitModel (Reset de estados diários e faixas)
             if (window.HabitModel && typeof window.HabitModel.resetDailyState === 'function') {
                 console.log("[GlobalApp] Chamando reset de Hábitos...");
-                window.HabitModel.resetDailyState(); // HabitModel deve estar preparado para ler a data correta
-                // Força renderização se o manager estiver ativo
+                window.HabitModel.resetDailyState();
                 if (window.HabitManager) window.HabitManager.render();
             }
 
-            // GymModel (Futuro uso, ex: reset de fadiga diária se houver)
+            // GymModel (Futuro uso, ex: reset de estado diário se houver)
             if (window.GymModel && typeof window.GymModel.resetDailyState === 'function') {
                 window.GymModel.resetDailyState();
             }
 
-            // 4. Atualiza Data de Controle e Salva
+            // 3. Atualiza Data de Controle e Salva
             this.data.lastLogin = gameDate;
             this.data.meta.lastActiveDate = gameDate;
             this.data.lastGameDate = gameDate; // Sincroniza
@@ -493,25 +421,6 @@ window.GlobalApp = {
         }
     },
 
-    // --- CONTROLE CENTRALIZADO DO AUDITOR (NOTA FISCAL) ---
-    toggleAuditWidget: function() {
-        const widget = document.getElementById('xp-audit-widget');
-        const body = document.body;
-        if (!widget) return;
-
-        // Se tem a classe hidden, está escondido (pelo CSS padrão ou classe)
-        const isHidden = widget.classList.contains('hidden');
-
-        if (isHidden) {
-            widget.classList.remove('hidden');
-            body.classList.add('audit-active'); // Ajusta padding mobile
-            if (window.SoundManager) window.SoundManager.play('click');
-        } else {
-            widget.classList.add('hidden');
-            body.classList.remove('audit-active');
-        }
-    },
-
     hardReset: async function() {
         if (window.SoundManager) window.SoundManager.play('click');
         const confirmed = await confirm("⚠️ ATENÇÃO: Isso apagará TODOS os dados permanentemente. Não pode ser desfeito.\n\nDeseja continuar?");
@@ -540,19 +449,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }));
 
     document.getElementById('file-import-input')?.addEventListener('change', (e) => window.GlobalApp.handleFileImport(e));
-    
-    // LISTENER: Botão de Alternar Auditoria
-    document.getElementById('btn-audit-toggle')?.addEventListener('click', () => {
-        window.GlobalApp.toggleAuditWidget();
-    });
-
-    // LISTENER: Atalho Global (Alt + A) para Auditoria
-    document.addEventListener('keydown', (e) => {
-        if (e.altKey && (e.key === 'a' || e.key === 'A')) {
-            e.preventDefault();
-            window.GlobalApp.toggleAuditWidget();
-        }
-    });
 
     document.dispatchEvent(new Event('SiteC_DataReady'));
 });
+                                       
