@@ -1,9 +1,9 @@
 /**
  * HABITS-MODEL.JS
  * Lógica de Dados e Regras de Negócio para Hábitos.
- * VERSÃO: V5.9.1 - GAME DATE COMPATIBILITY
- * Alterações: Ajuste na verificação de agendamento para usar GlobalApp.getGameDate(),
- * permitindo que o dia só vire logicamente após 12:00 ou comando manual.
+ * VERSÃO: V6.0 - LEAN EDITION (SEM XP)
+ * Alterações: Removido todo o cálculo de XP e Marcos (Milestones) de recompensa.
+ * Mantida a lógica de agendamento (frequência semanal / padrão) e streak.
  */
 
 window.HabitModel = {
@@ -39,8 +39,7 @@ window.HabitModel = {
             return !!habit.opportunityToday; // Só exibe se foi desbloqueado
         }
 
-        // --- ALTERAÇÃO V6.2: USO DE DATA DO JOGO (GAME DATE) ---
-        // Substitui new Date() para respeitar a regra das 12h
+        // Usa a Data do Jogo (Game Date) para respeitar a regra das 12h
         const gameDateStr = window.GlobalApp.getGameDate(); 
         const parts = gameDateStr.split('-');
         const gameDateObj = new Date(parts[0], parts[1] - 1, parts[2]);
@@ -74,7 +73,7 @@ window.HabitModel = {
         const created = new Date(habit.createdAt);
         created.setHours(0,0,0,0);
         
-        // --- ALTERAÇÃO V6.2: USO DE DATA DO JOGO ---
+        // Usa a Data do Jogo (Game Date)
         const gameDateStr = window.GlobalApp.getGameDate();
         const parts = gameDateStr.split('-');
         const currentGameDate = new Date(parts[0], parts[1] - 1, parts[2]);
@@ -89,30 +88,7 @@ window.HabitModel = {
         return totalIndex % habit.pattern.length;
     },
 
-    // --- 2. CÁLCULO DE XP (ESTIMATIVA VISUAL) ---
-    // Nota: O cálculo real final é feito no Controller (Master Formula), 
-    // mas este método é usado para mostrar a estimativa "+XX XP" no card.
-
-    calculateXP: function(habit) {
-        // Base baseada na importância
-        const baseValues = { 'low': 10, 'medium': 20, 'high': 35, 'critical': 50, 'development': 20 };
-        let xp = baseValues[habit.importance] || 15;
-
-        // Fator Emocional (Multiplicador 0.5x a 1.5x)
-        const emoMult = 0.5 + ((habit.emotionalValue || 0.5)); 
-        xp = xp * emoMult;
-
-        // Fadiga Cognitiva (Bônus para alta fadiga)
-        if (habit.cognitiveFatigue) xp = xp * 1.2;
-
-        // Bônus de Streak (Max +50%)
-        const streakBonus = Math.min(habit.streak || 0, 50) / 100;
-        xp = xp * (1 + streakBonus);
-
-        return Math.floor(xp);
-    },
-
-    // --- 3. RESET DIÁRIO (PASSIVO - V5.9) ---
+    // --- 2. RESET DIÁRIO (PASSIVO) ---
     // Chamado EXCLUSIVAMENTE pelo GlobalApp.checkForDailyReset()
     resetDailyState: function() {
         console.log("[HabitModel] Executando reset passivo de estados...");
@@ -147,18 +123,10 @@ window.HabitModel = {
             if (!completedYesterday) {
                 // ...e não é um hábito infinito (que não tem obrigação diária)...
                 if (h.type !== 'infinite') {
-                    // Verificação simplificada: Se lastDone não for ontem, quebra.
-                    // (Poderíamos verificar se era dia agendado, mas o GlobalApp já faz reset genérico.
-                    // A lógica fina de "era dia de fazer?" é complexa de rodar retroativamente sem histórico detalhado.
-                    // Assumimos: Se tem streak > 0 e não fez ontem, perdeu).
-                    
                     const lastDoneDate = h.lastDone ? h.lastDone.split('T')[0] : null;
                     
                     // Se a última vez que fez não foi ontem (e nem hoje, claro), e tinha streak...
                     if (lastDoneDate !== yesterdayStr && h.streak > 0) {
-                        // Verifica se ontem era dia de folga no padrão (Salvamento de Streak)
-                        // TODO: Implementar check retroativo de agendamento se necessário.
-                        // Por padrão, mantemos a rigidez: Não fez = Zero.
                         console.log(`[HabitModel] Streak perdido para: ${h.name}`);
                         h.streak = 0;
                     }
@@ -169,45 +137,7 @@ window.HabitModel = {
         window.GlobalApp.saveData();
     },
 
-    // --- 4. MILESTONES (CONQUISTAS) ---
-    checkMilestones: function(habit) {
-        // Alias para compatibilidade com Controller
-        return this.checkAndGetMilestoneXP(habit);
-    },
-
-    checkAndGetMilestoneXP: function(habit) {
-        if (!habit.milestoneType || habit.milestoneType === 'none') return null;
-
-        // Valores alvo para milestones
-        const targets = [1, 3, 7, 14, 21, 30, 60, 90, 180, 365, 1000];
-        
-        let currentVal = 0;
-        if (habit.milestoneType === 'streak') currentVal = habit.streak;
-        if (habit.milestoneType === 'total_reps') currentVal = habit.totalCount;
-
-        if (targets.includes(currentVal)) {
-            // Gera ID único para essa conquista: habitID_type_value
-            const milestoneId = `${habit.id}_${habit.milestoneType}_${currentVal}`;
-            
-            if (!habit.milestonesClaimed) habit.milestonesClaimed = [];
-            
-            if (!habit.milestonesClaimed.includes(milestoneId)) {
-                habit.milestonesClaimed.push(milestoneId);
-                
-                // Cálculo de XP do Prêmio
-                const bonusXP = Math.floor(50 * Math.sqrt(currentVal));
-                
-                return {
-                    xp: bonusXP,
-                    type: habit.milestoneType,
-                    targets: [currentVal]
-                };
-            }
-        }
-        return null;
-    },
-
-    // --- 5. UTILS ---
+    // --- 3. UTILS ---
     formatSeconds: function(seconds) {
         const m = Math.floor(seconds / 60);
         const s = seconds % 60;
