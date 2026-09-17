@@ -1,0 +1,155 @@
+/* --- CONTAINER --- */
+.tasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: var(--spacing-lg);
+    border: 2px solid var(--text-primary);
+}
+
+/* --- CARTÃO DE TAREFA --- */
+.task-card {
+    background-color: var(--bg-main);
+    border: none;
+    border-bottom: 1px dashed var(--line-color);
+    border-radius: 0;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background-color 0.15s ease;
+}
+.task-card:last-child { border-bottom: none; }
+
+.task-card:hover {
+    background-color: var(--bg-card-hover);
+}
+
+/* TAREFAS EM ATRASO */
+.task-card.decaying {
+    background-color: rgba(226, 132, 102, 0.06);
+}
+
+/* --- CONTEÚDO DO CARTÃO --- */
+.task-info {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.task-name {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.task-meta {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* --- AÇÕES DA TAREFA --- */
+.task-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.btn-complete-task {
+    background-color: transparent;
+    border: 2px solid var(--text-secondary);
+    color: var(--text-secondary);
+    width: 30px;
+    height: 30px;
+    border-radius: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: all 0.15s;
+    padding: 0;
+}
+
+.btn-complete-task:hover {
+    border-color: var(--success-color);
+    color: var(--success-color);
+}
+
+/* Botão de deletar (pequeno, discreto) */
+.btn-delete-task {
+    opacity: 0.5;
+    transition: opacity 0.15s;
+}
+
+.task-card:hover .btn-delete-task {
+    opacity: 1;
+}
+
+/* --- HISTÓRICO DE TAREFAS EXECUTADAS --- */
+.tasks-executed-history {
+    margin-top: var(--spacing-lg);
+    border-top: 1px solid var(--line-color);
+    padding-top: var(--spacing-md);
+}
+
+.tasks-executed-history h3 {
+    font-size: 0.85rem;
+    margin-bottom: var(--spacing-md);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+#tasks-history-list {
+    list-style: none;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.task-history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 4px;
+    border-bottom: 1px dashed var(--line-color);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.task-history-item:last-child {
+    border-bottom: none;
+}
+
+/* Feedback de dias de atraso */
+.days-late-badge {
+    font-size: 0.68rem;
+    background-color: transparent;
+    border: 1px solid var(--danger-color);
+    color: var(--danger-color);
+    padding: 2px 7px;
+    border-radius: 0;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* Botão de deletar log do histórico */
+.btn-delete-task-log {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    margin-left: 10px;
+    padding: 2px 6px;
+    font-size: 0.85rem;
+    transition: color 0.15s;
+    border-radius: 0;
+}
+
+.btn-delete-task-log:hover {
+    color: var(--danger-color);
+}
