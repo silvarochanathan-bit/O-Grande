@@ -1,0 +1,618 @@
+:root {
+    /* ==========================================================================
+       IDENTIDADE VISUAL "TRAÇO" — PLANNER TIPOGRÁFICO EM TOM ESCURO
+       Papel escuro + traço em vez de sombra + tipografia como personagem.
+       ========================================================================== */
+    --bg-main: #171511;      /* "Papel" escuro */
+    --bg-card: #171511;      /* Cards não usam preenchimento próprio, usam traço */
+    --bg-card-hover: #201D18;
+    --bg-nav: #171511;
+    --bg-input: #1C1A15;
+
+    --text-primary: #F3EFE4;   /* "Tinta" clara */
+    --text-secondary: #A79E8B; /* Tinta esmaecida */
+
+    --line-color: #3A3529;     /* Traço / divisória */
+    --border-color: #3A3529;   /* Alias mantido por compatibilidade com módulos */
+
+    --accent-color: #D9B26A;   /* Dourado — cor de destaque geral (equivale a "Hábitos") */
+    --accent-hover: #C79E52;
+
+    --success-color: #7FBE9A;  /* Verde suave — Dieta / sucesso geral */
+    --danger-color: #E28466;   /* Terracota — Academia / alerta */
+    --warning-color: #D9B26A;
+
+    /* Cor de identidade por módulo (usadas no Hub e nos back-buttons) */
+    --mod-habit: #D9B26A;
+    --mod-gym: #E28466;
+    --mod-diet: #7FBE9A;
+    --mod-finance: #7FA7D9;
+    --mod-task: #C79BDF;
+
+    /* Variáveis do Controle Financeiro (Tiers) */
+    --fin-tier-abundancia: #7FBE9A;
+    --fin-tier-positivo: #7FA7D9;
+    --fin-tier-reserva: #A9D9B0;
+    --fin-tier-neutro: #A79E8B;
+    --fin-tier-divida-leve: #D9B26A;
+    --fin-tier-divida-media: #E28466;
+    --fin-tier-divida-profunda: #C25B41;
+
+    /* Espaçamentos e Medidas */
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --border-radius: 0px; /* Identidade "Traço": bordas retas em todo o app */
+
+    /* Z-Index (Hierarquia Organizada) */
+    --z-background: 0;
+    --z-content: 10;
+    --z-header: 100;    /* Reservado para elementos fixos no topo */
+    --z-nav: 90;        /* Menu de abas (se fixo) */
+    --z-floating: 500;  /* Cronômetros flutuantes */
+    --z-overlay: 1000;  /* Overlays de feedback */
+    --z-modal: 2000;    /* Modais de edição */
+    --z-sys-modal: 3000; /* Alertas do sistema (Hard Reset etc) */
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    outline: none;
+    -webkit-tap-highlight-color: transparent; /* Remove flash azul no toque */
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden; /* Evita scroll lateral */
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Fonte serifada para títulos em todo o app */
+h1, h2, .display-font {
+    font-family: 'Fraunces', serif;
+    font-optical-sizing: auto;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+/* Fonte monoespaçada para números, datas e metadados */
+.mono, .stat-mono {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* ==========================================================================
+   VISIBILIDADE DOS MÓDULOS (SUPER APP)
+   ========================================================================== */
+
+/* Por padrão, esconde todos os containers de App */
+.app-module {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+/* Exibe apenas o módulo ativo baseado no atributo do body */
+body[data-current-app="hub"] #app-hub { display: flex; }
+body[data-current-app="productivity"] #app-productivity { display: block; }
+body[data-current-app="gym"] #app-gym { display: block; }
+body[data-current-app="diet"] #app-diet { display: block; }
+body[data-current-app="finance"] #app-finance { display: block; }
+
+/* Esconde a navegação interna de abas quando está no HUB */
+body[data-current-app="hub"] #main-nav { display: none; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   TELA DE HUB (HOME) — "CENTRAL"
+   ========================================================================== */
+
+#app-hub {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    min-height: calc(100vh - 40px);
+    padding: 22px 18px 40px;
+    max-width: 640px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.hub-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 2.4rem;
+    color: var(--text-primary);
+    text-transform: none;
+    letter-spacing: -0.01em;
+    text-align: left;
+    border-bottom: 3px solid var(--text-primary);
+    padding-bottom: 16px;
+    margin-bottom: 24px;
+}
+
+.hub-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    background: var(--line-color);
+    border: 2px solid var(--text-primary);
+    width: 100%;
+    max-width: 1000px;
+}
+
+.hub-card {
+    background-color: var(--bg-main);
+    border: none;
+    border-radius: 0;
+    padding: 20px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    gap: 4px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.hub-card:hover,
+.hub-card:active { background-color: var(--bg-card-hover); }
+
+.hub-icon {
+    font-size: 1.3rem;
+    margin-bottom: 8px;
+}
+
+.hub-label {
+    font-family: 'Fraunces', serif;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Cores específicas dos Apps no Hub — barra de traço no topo do card */
+.hub-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 30px; height: 3px;
+    background: var(--line-color);
+}
+.hub-card[data-app="productivity"]::before { background: var(--mod-habit); }
+.hub-card[data-app="productivity"] .hub-icon { color: var(--mod-habit); }
+
+.hub-card[data-app="gym"]::before { background: var(--mod-gym); }
+.hub-card[data-app="gym"] .hub-icon { color: var(--mod-gym); }
+
+.hub-card[data-app="diet"]::before { background: var(--mod-diet); }
+.hub-card[data-app="diet"] .hub-icon { color: var(--mod-diet); }
+
+.hub-card[data-app="finance"]::before { background: var(--mod-finance); }
+.hub-card[data-app="finance"] .hub-icon { color: var(--mod-finance); }
+
+/* ==========================================================================
+   NAVEGAÇÃO (PRODUTIVIDADE)
+   ========================================================================== */
+nav#main-nav {
+    display: flex;
+    background-color: var(--bg-main);
+    padding: 0;
+    gap: 0;
+    border: 2px solid var(--text-primary);
+    margin: 18px auto 20px;
+    max-width: 640px;
+
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+nav#main-nav::-webkit-scrollbar { display: none; }
+
+.nav-btn {
+    background: none;
+    border: none;
+    border-right: 2px solid var(--text-primary);
+    color: var(--text-secondary);
+    padding: 10px 16px;
+    cursor: pointer;
+    font-weight: 600;
+    border-radius: 0;
+    transition: all 0.15s;
+    font-size: 0.85rem;
+    flex: 1;
+    flex-shrink: 0;
+}
+.nav-btn:last-child { border-right: none; }
+
+.nav-btn.active {
+    background-color: var(--text-primary);
+    color: var(--bg-main);
+}
+
+/* Botão de Voltar ao Hub */
+.btn-back-hub {
+    position: fixed;
+    bottom: 18px;
+    left: 18px;
+    width: 46px;
+    height: 46px;
+    border-radius: 0;
+    background-color: var(--bg-main);
+    border: 2px solid var(--text-primary);
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: var(--z-floating);
+    transition: transform 0.15s;
+}
+
+.btn-back-hub:active {
+    transform: scale(0.92);
+}
+
+/* ==========================================================================
+   CONTEÚDO PRINCIPAL
+   ========================================================================== */
+main#app-content {}
+
+.app-internal-container {
+    padding: 18px 16px;
+    padding-bottom: 100px;
+    width: 100%;
+    max-width: 700px;
+    margin: 0 auto;
+    transition: padding-bottom 0.3s ease;
+}
+
+.tab-content {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--line-color);
+    padding-bottom: 10px;
+    gap: 12px;
+}
+
+h2 {
+    font-family: 'Fraunces', serif;
+    color: var(--text-primary);
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+
+h3 {
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-sm);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   ELEMENTOS DE UI GENÉRICOS
+   ========================================================================== */
+button {
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.action-btn {
+    background-color: var(--text-primary);
+    color: var(--bg-main);
+    border: none;
+    padding: 10px 18px;
+    border-radius: 0;
+    font-weight: 700;
+    font-size: 0.85rem;
+    transition: opacity 0.15s;
+    text-transform: none;
+}
+.action-btn:active { opacity: 0.8; }
+
+.secondary-btn {
+    background-color: transparent;
+    border: 2px solid var(--line-color);
+    color: var(--text-secondary);
+    padding: 9px 16px;
+    border-radius: 0;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+/* ==========================================================================
+   FORMULÁRIOS
+   ========================================================================== */
+input[type="text"],
+input[type="number"],
+select {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: var(--spacing-md);
+    background-color: var(--bg-input);
+    border: 1px solid var(--line-color);
+    border-radius: 0;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-family: 'Space Grotesk', sans-serif;
+}
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus {
+    border-color: var(--accent-color);
+}
+
+input[type="checkbox"] {
+    margin-right: 5px;
+    transform: scale(1.2);
+    accent-color: var(--accent-color);
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* ==========================================================================
+   MODAIS GERAIS
+   ========================================================================== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(10, 9, 7, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: var(--z-modal);
+}
+
+.modal-content {
+    background-color: var(--bg-main);
+    padding: 22px;
+    border-radius: 0;
+    width: 95%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 2px solid var(--text-primary);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.primary-btn {
+    background-color: var(--text-primary);
+    color: var(--bg-main);
+    border: none;
+    padding: 11px 20px;
+    border-radius: 0;
+    font-weight: 700;
+    cursor: pointer;
+    flex: 1;
+}
+
+/* ==========================================================================
+   SYSTEM MODALS (ALERT/CONFIRM/PROMPT)
+   ========================================================================== */
+.sys-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(10, 9, 7, 0.92);
+    z-index: var(--z-sys-modal);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.15s ease;
+}
+
+.sys-modal-content {
+    background-color: var(--bg-main);
+    border: 2px solid var(--accent-color);
+    padding: 24px;
+    border-radius: 0;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    animation: scaleIn 0.15s ease;
+}
+
+.sys-modal-message {
+    font-size: 1.05rem;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    white-space: pre-line;
+}
+
+.sys-modal-input {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--bg-input);
+    border: 1px solid var(--line-color);
+    color: var(--text-primary);
+    border-radius: 0;
+    margin-bottom: 20px;
+    font-size: 1rem;
+}
+
+.sys-modal-input:focus {
+    border-color: var(--accent-color);
+}
+
+.sys-modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+@keyframes scaleIn {
+    from { transform: scale(0.96); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* ==========================================================================
+   UTILITÁRIOS
+   ========================================================================== */
+.hidden { display: none !important; }
+
+.pulsing-text { animation: textPulse 2s infinite; }
+
+@keyframes textPulse {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+}
+
+/* ==========================================================================
+   MEDIA QUERIES (DESKTOP)
+   ========================================================================== */
+@media (min-width: 768px) {
+    .app-internal-container {
+        padding: 30px;
+    }
+
+    .hub-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .primary-btn, .secondary-btn, .action-btn {
+        width: auto;
+        flex: initial;
+    }
+}
+
+/* ==========================================================================
+   BOTÃO VIRAR O DIA (FIXO/FLUTUANTE)
+   ========================================================================== */
+#btn-turn-day {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 99999;
+    background: var(--accent-color);
+    color: var(--bg-main);
+    border: 2px solid var(--text-primary);
+    padding: 10px 20px;
+    border-radius: 0;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+}
+
+/* ==========================================================================
+   CONTROLE FINANCEIRO
+   ========================================================================== */
+.btn-fin-gain {
+    background-color: var(--mod-finance);
+    color: #0B0D10;
+}
+
+.btn-fin-expense {
+    background-color: var(--mod-gym);
+    color: #0B0D10;
+}
+
+.finance-dashboard-card {
+    background-color: var(--bg-main);
+    border: 2px solid var(--text-primary);
+    border-radius: 0;
+    padding: 26px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.finance-balance-label {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 5px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.finance-balance-value {
+    font-family: 'Fraunces', serif;
+    font-size: 2.4rem;
+    font-weight: 600;
+    margin: 8px 0;
+    color: var(--mod-finance);
+}
+
+.finance-tier-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 0;
+    display: inline-block;
+    border: 1px solid var(--line-color);
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.finance-actions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    background: var(--line-color);
+    border: 2px solid var(--text-primary);
+    margin-bottom: 25px;
+}
+
+.finance-action-btn {
+    background-color: var(--bg-main);
+    padding: 16px;
+    border: none;
+    border-radius: 0;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    transition: background-color 0.15s;
+    color: var(--text-primary);
+}
+
+.finance-action-btn:active {
+    background-color: var(--bg-card-hover);
+}
