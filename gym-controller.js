@@ -1,7 +1,10 @@
 /**
- * GYM-CONTROLLER.JS (V6.0 - HYBRID RUNNING CONTROL)
+ * GYM-CONTROLLER.JS
  * Orquestrador do Módulo Iron Forge.
- * Gerencia: Fase, Juramento, Cardio Híbrido (Timer + HIT) e Fluxo de Sessão.
+ * VERSÃO: V7.0 - LEAN EDITION (SEM XP)
+ * Alterações: Removido o Juramento (modal de bônus de XP ao final do exercício)
+ * e todo o disparo/lógica associada. Mantidos: Fase (agora só anotação), Cardio
+ * Híbrido (Timer + HIT), fluxo de sessão, rotinas e histórico.
  */
 
 window.GymController = {
@@ -10,13 +13,12 @@ window.GymController = {
     restInterval: null,
     currentRoutineEditing: null, // ID da rotina sendo editada
     currentSetEditing: null,     // { exIndex, setIndex } para o modal de tipo de série
-    currentOathExerciseIndex: null, // Exercício aguardando juramento
 
     /**
      * Inicialização e Bindings.
      */
     init: function() {
-        console.log("[GymController] Motor V6.0 (Hybrid Run) Ativado.");
+        console.log("[GymController] Motor V7.0 (Lean Edition) Ativado.");
 
         if (window.GymView) {
             window.GymView.init('gym-container');
@@ -98,16 +100,7 @@ window.GymController = {
             this.currentSetEditing = null;
         });
 
-        // 3. NOVO: Listeners do Modal de Juramento (V5.9)
-        document.getElementById('btn-oath-yes')?.addEventListener('click', () => {
-            this.handleOath(true);
-        });
-        
-        document.getElementById('btn-oath-no')?.addEventListener('click', () => {
-            this.handleOath(false);
-        });
-
-        // 4. Fechamento Geral de Modais
+        // 3. Fechamento Geral de Modais
         const closeSelectors = [
             { btn: 'btn-cancel-routine', modal: 'modal-gym-routine' },
             { btn: 'btn-cancel-ex-create', modal: 'modal-gym-exercise-create' },
@@ -122,7 +115,7 @@ window.GymController = {
             });
         });
 
-        // 5. Pesquisa e Atalhos
+        // 4. Pesquisa e Atalhos
         const searchInput = document.getElementById('exercise-search');
         if (searchInput) {
             searchInput.oninput = (e) => {
@@ -143,13 +136,11 @@ window.GymController = {
         const session = window.GymModel.getActiveSession();
         
         if (session) {
-            // --- CORREÇÃO DE COMPARAÇÃO (HISTÓRICO) ---
             // Busca o último treino finalizado desta mesma rotina
             const history = window.GlobalApp.data.gym.history || [];
-            // Encontra o último log que tenha o mesmo routineId
             const lastSession = history.slice().reverse().find(h => h.routineId === session.routineId);
             
-            // Envia session atual e lastSession para a View fazer a comparação correta (Treino a Treino)
+            // Envia session atual e lastSession para a View fazer a comparação (Treino a Treino)
             if (window.GymView) window.GymView.renderActiveSession(session, lastSession);
             
             if (!this.sessionInterval) this._startWorkoutTimer();
@@ -161,7 +152,7 @@ window.GymController = {
     },
 
     // =========================================
-    // 0. CONTROLE DE FASE (V5.9)
+    // 0. CONTROLE DE FASE (INFORMATIVO)
     // =========================================
 
     setGymPhase: function(phase) {
@@ -278,7 +269,7 @@ window.GymController = {
         const session = window.GymModel.getActiveSession();
         if (!session) return;
 
-        // V6.0: Verifica se há atividade (Musculação OU Corrida)
+        // Verifica se há atividade (Musculação OU Corrida)
         const hasSets = session.exercises.some(ex => ex.sets && ex.sets.some(s => s.done));
         const hasRun = session.exercises.some(ex => ex.name === 'Corrida' && (ex.runDistance > 0 || (ex.sets && ex.sets.length > 0)));
         
@@ -290,10 +281,9 @@ window.GymController = {
 
         clearInterval(this.sessionInterval);
         
-        // Model calcula Bônus de Completude e entrega XP
         window.GymModel.finishSession();
         
-        if (window.SoundManager) window.SoundManager.play('levelup');
+        if (window.SoundManager) window.SoundManager.play('click');
 
         this.render();
     },
@@ -309,7 +299,7 @@ window.GymController = {
     },
 
     // =========================================
-    // 4. AÇÕES DE SÉRIE & JURAMENTO
+    // 4. AÇÕES DE SÉRIE
     // =========================================
 
     toggleCheck: function(exIndex, setIndex) {
@@ -335,34 +325,7 @@ window.GymController = {
         if (isChecked) {
             const seconds = parseInt(restVal) || 60;
             this.startRestTimer(seconds);
-
-            // V5.9: Verifica Gatilho do Juramento
-            const ex = session.exercises[exIndex];
-            
-            // Se for a última série E ainda não jurou
-            if (setIndex === ex.sets.length - 1 && !ex.oathTaken) {
-                this.currentOathExerciseIndex = exIndex;
-                setTimeout(() => {
-                    window.GymView.toggleModal('modal-gym-oath', true);
-                }, 500); // Pequeno delay para UX
-            }
         }
-    },
-
-    handleOath: function(accepted) {
-        if (this.currentOathExerciseIndex === null) return;
-
-        window.GymView.toggleModal('modal-gym-oath', false);
-
-        if (accepted) {
-            if (window.SoundManager) window.SoundManager.play('xp');
-            const bonus = window.GymModel.applyOathBonus(this.currentOathExerciseIndex);
-            if (bonus > 0) {
-                alert(`🛡️ JURAMENTO ACEITO!\nBônus de Intensidade: +${bonus} XP`);
-            }
-        }
-
-        this.currentOathExerciseIndex = null;
     },
 
     updateSetData: function(exIndex, setIndex) {
@@ -387,15 +350,20 @@ window.GymController = {
         this.render();
     },
 
-    // NOVA FUNÇÃO: Deletar Série
+    // Deletar Série
     deleteSet: function(exIndex, setIndex) {
         if (window.SoundManager) window.SoundManager.play('click');
         
         if (confirm("Tem certeza que deseja apagar esta série?")) {
             const session = window.GymModel.getActiveSession();
             if (session && session.exercises[exIndex] && session.exercises[exIndex].sets) {
+                const exerciseId = session.exercises[exIndex].id;
+
                 // Remove a série do array
                 session.exercises[exIndex].sets.splice(setIndex, 1);
+
+                // Recalcula o PR, caso a série apagada fosse o recorde atual
+                window.GymModel._recalculateExercisePR(exerciseId);
                 
                 // Salva
                 window.GlobalApp.saveData();
@@ -476,7 +444,7 @@ window.GymController = {
             `;
             if (remaining <= 0) {
                 this.stopRestTimer();
-                if (window.SoundManager) window.SoundManager.play('xp');
+                if (window.SoundManager) window.SoundManager.play('click');
             }
             remaining--;
         };
@@ -501,17 +469,17 @@ window.GymController = {
 
     undoLog: async function(logId) {
         if (window.SoundManager) window.SoundManager.play('click');
-        if (await confirm("Remover registo e estornar XP?")) {
+        if (await confirm("Remover este registo do histórico?")) {
             window.GymModel.revertLog(logId);
             this.render();
         }
     },
 
     // =========================================
-    // 7. MÓDULO DE CORRIDA HÍBRIDO (V6.0)
+    // 7. MÓDULO DE CORRIDA HÍBRIDO
     // =========================================
 
-    // Ações de HIT (Lista) - RESTAURADAS
+    // Ações de HIT (Lista de intervalos)
     addHitInterval: function(exIndex) {
         if (window.SoundManager) window.SoundManager.play('click');
         window.GymModel.addSet(exIndex);
@@ -549,12 +517,10 @@ window.GymController = {
         }
     },
 
-    // Ações de Dashboard (Timer + Distância) - NOVAS V6.0
+    // Ações de Dashboard (Timer + Distância)
     toggleRunTimer: function(exIndex) {
         if (window.SoundManager) window.SoundManager.play('click');
-        const newState = window.GymModel.toggleRunTimer(exIndex);
-        // Não renderiza tudo para não piscar, o timer roda via setInterval na View se necessário
-        // Mas para atualizar o ícone Play/Pause:
+        window.GymModel.toggleRunTimer(exIndex);
         this.render(); 
     },
 
@@ -569,9 +535,8 @@ window.GymController = {
 
     addRunShortcut: function(exIndex, kmDelta) {
         if (window.SoundManager) window.SoundManager.play('click');
-        const isGodMode = window.GymModel.addRunDistance(exIndex, kmDelta);
-        if (isGodMode) {
-            if (window.SoundManager) window.SoundManager.play('levelup');
+        const isNewPR = window.GymModel.addRunDistance(exIndex, kmDelta);
+        if (isNewPR) {
             alert("🏆 NOVO RECORDE PESSOAL (PR) ALCANÇADO!");
         }
         this.render();
