@@ -1,0 +1,767 @@
+/* ==========================================================================
+   DIET.CSS — IDENTIDADE "TRAÇO"
+   Estilos do módulo Dieta adaptados ao planner tipográfico escuro.
+   Substituído: glassmorphism/gradientes por traços sólidos e cor de módulo.
+   ========================================================================== */
+
+:root {
+    --diet-bg: var(--bg-main, #171511);
+    --diet-card-glass: transparent;
+    --diet-border: var(--line-color, #3A3529);
+
+    /* Cores sólidas de macro (substituem os gradientes) */
+    --grad-prot: var(--mod-finance, #7FA7D9);
+    --grad-carb: var(--mod-habit, #D9B26A);
+    --grad-kcal: var(--mod-diet, #7FBE9A);
+
+    --diet-text-main: var(--text-primary, #F3EFE4);
+    --diet-text-sub: var(--text-secondary, #A79E8B);
+    --diet-text-dim: #6B6455;
+}
+
+/* --- LAYOUT GERAL --- */
+#diet-container {
+    padding-bottom: 110px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* --- CONTROLES SUPERIORES --- */
+.diet-controls {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.diet-controls button {
+    background: transparent;
+    border: 1px solid var(--diet-border);
+    transition: border-color 0.15s ease;
+}
+.diet-controls button:hover {
+    border-color: var(--diet-text-main);
+}
+
+/* --- CARDS PADRÃO --- */
+.diet-card {
+    background: var(--diet-bg);
+    border: 2px solid var(--diet-text-main);
+    border-radius: 0;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+}
+
+.diet-card h3 {
+    margin: 0 0 18px 0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--diet-text-sub);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* --- GRÁFICO DE PESO --- */
+#diet-weight-chart {
+    background: transparent;
+    border-radius: 0;
+    position: relative;
+    padding: 8px;
+    border: 2px solid var(--diet-text-main);
+}
+
+.weight-bar-container {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
+    height: 100%;
+    padding: 15px 10px 5px 10px;
+}
+
+.weight-bar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+    width: 25%;
+    position: relative;
+    z-index: 2;
+}
+
+.weight-bar {
+    width: 10px;
+    background: var(--diet-border);
+    border-radius: 0;
+    transition: height 0.6s ease;
+    position: relative;
+}
+
+.weight-bar.current {
+    width: 14px;
+    background: var(--grad-kcal);
+}
+
+.weight-value {
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--diet-text-main);
+    font-family: 'Fraunces', serif;
+}
+
+.weight-label {
+    margin-top: 10px;
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: var(--diet-text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+#diet-weight-progress {
+    margin-top: 14px;
+    font-size: 0.8rem;
+    background: transparent;
+    padding: 8px;
+    border-radius: 0;
+    border-top: 1px dashed var(--diet-border);
+    color: var(--diet-text-sub);
+}
+
+/* --- BARRAS DE MACROS --- */
+.macro-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.macro-info-group {
+    display: flex;
+    align-items: center;
+    width: 66px;
+    gap: 8px;
+}
+
+.macro-icon {
+    width: 22px; height: 22px;
+    border-radius: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem;
+    font-weight: bold;
+    color: var(--diet-bg);
+}
+
+.macro-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--diet-text-main);
+}
+
+.macro-bar-bg {
+    flex: 1;
+    height: 6px;
+    background: var(--diet-border);
+    border-radius: 0;
+    margin: 0 14px;
+    overflow: hidden;
+    position: relative;
+}
+
+.macro-bar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 0;
+    transition: width 0.5s ease-out;
+    position: relative;
+}
+
+.macro-value {
+    width: 85px;
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--diet-text-sub);
+}
+.macro-value strong { color: var(--diet-text-main); }
+
+/* Cores Macro */
+.icon-kcal { background: var(--grad-kcal); }
+.icon-prot { background: var(--grad-prot); }
+.icon-carb { background: var(--grad-carb); }
+
+.macro-bar-fill.kcal { background: var(--grad-kcal); }
+.macro-bar-fill.prot { background: var(--grad-prot); }
+.macro-bar-fill.carb { background: var(--grad-carb); }
+
+/* --- REFEIÇÕES --- */
+.meal-card {
+    background: var(--diet-bg);
+    border: 2px solid var(--diet-text-main);
+    border-radius: 0;
+    overflow: hidden;
+    margin-bottom: 0;
+}
+
+.meal-header {
+    padding: 14px 16px;
+    background: transparent;
+    border-bottom: 1px dashed var(--diet-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.meal-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    color: var(--diet-text-main);
+    font-size: 1rem;
+}
+
+.meal-macros-mini {
+    font-size: 0.72rem;
+    display: flex;
+    gap: 10px;
+    background: transparent;
+    padding: 3px 0;
+    border-radius: 0;
+    border: none;
+    font-family: 'JetBrains Mono', monospace;
+}
+.meal-macros-mini span { font-weight: 600; opacity: 0.85; }
+
+.meal-foods-list {
+    padding: 8px;
+    background: transparent;
+}
+
+.food-entry-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 11px 12px;
+    margin-bottom: 4px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed var(--diet-border);
+    border-radius: 0;
+    transition: background-color 0.15s;
+}
+.food-entry-item:hover {
+    background: var(--bg-card-hover, #201D18);
+}
+.food-entry-item:last-child { margin-bottom: 0; border-bottom: none; }
+
+.food-info { display: flex; flex-direction: column; gap: 3px; }
+.food-info strong { font-size: 0.88rem; color: var(--diet-text-main); font-weight: 500; }
+.food-info span { font-size: 0.72rem; color: var(--diet-text-sub); }
+
+.btn-remove-food {
+    width: 26px; height: 26px;
+    border-radius: 0;
+    background: transparent;
+    color: var(--mod-gym, #E28466);
+    border: 1px solid var(--mod-gym, #E28466);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.15s;
+}
+.btn-remove-food:hover { background: var(--mod-gym, #E28466); color: var(--diet-bg); }
+
+.btn-add-food-meal {
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 14px;
+    color: var(--diet-text-sub);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.15s;
+    border-top: 1px solid var(--diet-border);
+    font-family: 'JetBrains Mono', monospace;
+}
+.btn-add-food-meal:hover {
+    color: var(--diet-text-main);
+}
+
+/* --- MODAL FULLSCREEN "MEUS ALIMENTOS" --- */
+.diet-fooddb-overlay {
+    padding: 0;
+    align-items: stretch; /* .modal-overlay usa align-items:center por padrão, o que
+                              faz o filho crescer pelo conteúdo em vez de ocupar 100%
+                              da altura da tela — sobrescrevemos aqui para esse modal. */
+}
+
+.diet-fooddb-content {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    margin: 0;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    box-sizing: border-box;
+    overflow: hidden; /* Sobrescreve o overflow-y:auto do .modal-content genérico:
+                          o scroll deve acontecer dentro de cada painel, nunca no modal inteiro. */
+}
+
+.diet-fooddb-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    margin-bottom: 14px;
+    border-bottom: 1px dashed var(--diet-border);
+    padding-bottom: 12px;
+}
+.diet-fooddb-header .gym-modal-title { margin: 0; }
+
+.diet-fooddb-close {
+    flex-shrink: 0;
+    width: auto;
+}
+
+.diet-fooddb-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    gap: 16px;
+}
+
+.diet-fooddb-list-pane {
+    flex: 2;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--diet-border);
+}
+
+.diet-fooddb-form-pane {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.diet-fooddb-pane-label {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--diet-text-sub);
+    font-family: 'JetBrains Mono', monospace;
+    padding: 8px 10px;
+    border-bottom: 1px dashed var(--diet-border);
+}
+.diet-fooddb-pane-label .diet-fooddb-newcat-btn {
+    flex-shrink: 0;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.diet-fooddb-list-pane .diet-fooddb-pane-label {
+    padding: 10px 12px;
+}
+
+.diet-fooddb-form {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px 2px 10px 2px;
+}
+
+/* Kcal / Proteína / Carbo lado a lado, sem exigir scroll */
+.diet-fooddb-macros-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+}
+.diet-fooddb-macros-row .gym-form-group { min-width: 0; }
+.diet-fooddb-macros-row .gym-form-input { width: 100%; box-sizing: border-box; }
+
+/* Campo de categoria + botão de criar categoria vazia */
+.diet-fooddb-category-row {
+    display: flex;
+    gap: 6px;
+    align-items: stretch;
+}
+.diet-fooddb-category-row input { flex: 1; min-width: 0; }
+.diet-fooddb-newcat-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 0 10px;
+    font-size: 0.75rem;
+}
+
+/* Modal de seleção de alimento (log de refeição) usa só o painel de lista */
+.diet-fooddb-body-single {
+    justify-content: center;
+}
+.diet-fooddb-body-single .diet-fooddb-list-pane {
+    flex: 1;
+}
+
+/* --- PACKS DE REFEIÇÃO --- */
+.diet-pack-items-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 2px;
+}
+
+.diet-pack-form-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--diet-border);
+    background: var(--bg-card-hover, #201D18);
+}
+
+.diet-pack-form-item-name {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.85rem;
+    color: var(--diet-text-main);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.diet-pack-form-item-grams {
+    width: 70px !important; /* sobrescreve o width:100% de .gym-form-input, que
+                                 do contrário ocupa todo o espaço do flex container
+                                 e empurra o nome do alimento para fora da vista */
+    flex-shrink: 0;
+    padding: 8px !important;
+    text-align: right;
+}
+
+.diet-pack-form-item-unit {
+    flex-shrink: 0;
+    font-size: 0.78rem;
+    color: var(--diet-text-sub);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.diet-pack-form-item .btn-delete-db-item {
+    flex-shrink: 0;
+}
+
+/* Botão que abre o seletor de alimento no modal de registro de refeição */
+.diet-log-picker-trigger {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: left;
+}
+
+/* Itens de alimento clicáveis dentro do seletor de registro (sem botões de ação) */
+.diet-food-db-item-pickable {
+    justify-content: flex-start;
+}
+
+/* Responsivo: empilha em telas estreitas (celular) */
+@media (max-width: 720px) {
+    .diet-fooddb-body {
+        flex-direction: column;
+        min-height: 0;
+    }
+    .diet-fooddb-list-pane {
+        flex: 3;
+        min-height: 0;
+    }
+    .diet-fooddb-form-pane {
+        flex: 2;
+        min-height: 0;
+    }
+    .diet-fooddb-body-single .diet-fooddb-list-pane {
+        flex: 1;
+    }
+}
+
+/* --- ÁRVORE DE CATEGORIAS (LISTA DB DE ALIMENTOS) --- */
+.diet-foods-tree {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.diet-food-category {
+    border-bottom: 1px dashed var(--diet-border);
+}
+.diet-food-category:last-child { border-bottom: none; }
+
+.diet-food-category-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    cursor: pointer;
+    user-select: none;
+    background: var(--bg-card-hover, #201D18);
+    transition: background-color 0.15s;
+}
+.diet-food-category-header:hover { filter: brightness(1.15); }
+
+/* Subcategorias (profundidade > 0) ficam com fundo levemente mais escuro,
+   para distinguir visualmente do nível pai */
+.diet-food-category .diet-food-category .diet-food-category-header {
+    background: rgba(0,0,0,0.18);
+}
+.diet-food-category .diet-food-category .diet-food-category .diet-food-category-header {
+    background: rgba(0,0,0,0.32);
+}
+
+.diet-food-category-arrow {
+    font-size: 0.7rem;
+    color: var(--diet-text-sub);
+    transition: transform 0.15s ease;
+    flex-shrink: 0;
+}
+.diet-food-category.expanded > .diet-food-category-header .diet-food-category-arrow {
+    transform: rotate(90deg);
+}
+
+.diet-food-category-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--diet-text-main);
+    flex: 1;
+}
+.diet-food-category .diet-food-category .diet-food-category-name {
+    font-size: 0.76rem;
+    font-weight: 600;
+}
+
+.diet-food-category-count {
+    font-size: 0.7rem;
+    color: var(--diet-text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    flex-shrink: 0;
+}
+
+/* Botões de renomear/apagar categoria, no cabeçalho da árvore */
+.diet-category-actions {
+    flex-shrink: 0;
+    margin-left: 4px;
+}
+.diet-category-actions button {
+    width: 26px;
+    height: 26px;
+}
+
+.diet-food-category-items {
+    display: none;
+}
+.diet-food-category.expanded > .diet-food-category-items {
+    display: block;
+}
+
+.diet-food-db-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 14px 14px 30px;
+    background: transparent;
+    border-radius: 0;
+    margin-bottom: 0;
+    border-bottom: 1px dashed var(--diet-border);
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+.diet-food-db-item:hover { background: var(--bg-card-hover, #201D18); }
+.diet-food-category-items .diet-food-db-item:last-child { border-bottom: none; }
+
+.db-food-name { font-size: 0.9rem; color: var(--diet-text-main); font-weight: 500; margin-bottom: 4px; }
+.db-food-macros { display: flex; gap: 10px; font-size: 0.72rem; opacity: 0.85; font-family: 'JetBrains Mono', monospace; }
+.db-food-macros span { font-weight: 500; }
+
+.kcal-val { color: var(--grad-kcal); }
+.p-val { color: var(--grad-prot); }
+.c-val { color: var(--grad-carb); }
+
+/* Botões de Ação na Lista DB */
+.db-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-delete-db-item {
+    background: transparent;
+    color: var(--mod-gym, #E28466);
+    border: 1px solid var(--mod-gym, #E28466);
+    border-radius: 0;
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.btn-delete-db-item:hover { background: var(--mod-gym, #E28466); color: var(--diet-bg); }
+
+.btn-edit-db-item {
+    background: transparent;
+    color: var(--mod-finance, #7FA7D9);
+    border: 1px solid var(--mod-finance, #7FA7D9);
+    border-radius: 0;
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.btn-edit-db-item:hover { background: var(--mod-finance, #7FA7D9); color: var(--diet-bg); }
+
+/* Configuração de Metas (Grid no Modal) */
+#diet-meal-targets-config > div {
+    background: transparent !important;
+    border: 1px solid var(--diet-border) !important;
+}
+
+/* Scrollbar suave para listas */
+#diet-foods-list::-webkit-scrollbar,
+#diet-meal-targets-config::-webkit-scrollbar {
+    width: 5px;
+}
+#diet-foods-list::-webkit-scrollbar-thumb,
+#diet-meal-targets-config::-webkit-scrollbar-thumb {
+    background: var(--diet-border);
+    border-radius: 0;
+}
+
+/* Ajustes Inputs */
+.gym-form-input {
+    background: var(--bg-input, #1C1A15) !important;
+    border-color: var(--diet-border) !important;
+    color: var(--diet-text-main) !important;
+    border-radius: 0 !important;
+}
+.gym-form-input:focus {
+    border-color: var(--grad-prot) !important;
+}
+
+/* --- HISTÓRICO DE DIAS (MODAL) --- */
+.diet-history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: transparent;
+    border-radius: 0;
+    margin-bottom: 0;
+    border-bottom: 1px dashed var(--diet-border);
+}
+.diet-history-item:last-child { margin-bottom: 0; border-bottom: none; }
+
+.history-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.history-icon {
+    font-size: 1.05rem;
+    background: transparent;
+    width: 32px; height: 32px;
+    border: 1px solid var(--diet-border);
+    border-radius: 0;
+    display: flex; align-items: center; justify-content: center;
+}
+
+.history-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.history-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--diet-text-main);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.history-detail {
+    font-size: 0.72rem;
+    color: var(--grad-kcal);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.btn-undo-history {
+    background: transparent;
+    color: var(--mod-gym, #E28466);
+    border: 1px solid var(--mod-gym, #E28466);
+    width: 30px; height: 30px;
+    border-radius: 0;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+}
+.btn-undo-history:hover {
+    background: var(--mod-gym, #E28466);
+    color: var(--diet-bg);
+}
+
+/* --- AÇÕES DE REGISTRO --- */
+
+.btn-register-meal {
+    width: 100%;
+    border: none;
+    border-top: 2px solid var(--diet-text-main);
+    padding: 14px;
+    background: var(--grad-kcal);
+    color: var(--diet-bg);
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: filter 0.15s;
+    border-radius: 0;
+}
+
+.btn-register-meal:hover {
+    filter: brightness(1.1);
+}
+
+/* --- SISTEMA DE PESAGEM --- */
+.btn-weigh-pulse-green {
+    background: var(--success-color, #7FBE9A) !important;
+    color: var(--diet-bg) !important;
+    border: 2px solid var(--diet-text-main) !important;
+    font-weight: 700;
+    border-radius: 0 !important;
+}
+
+.btn-weigh-pulse-red {
+    background: var(--danger-color, #E28466) !important;
+    color: var(--diet-bg) !important;
+    border: 2px solid var(--diet-text-main) !important;
+    font-weight: 700;
+    border-radius: 0 !important;
+}
